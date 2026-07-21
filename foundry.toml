@@ -4,3 +4,11 @@ out = "out"
 libs = ["lib"]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
+# 네트워크 접속 주소 (.env 의 RPC_URL 을 읽어옴)
+[rpc_endpoints]
+rh_testnet = "${RPC_URL}"
+
+# 블록 익스플로러(Blockscout) 자동 검증용
+[etherscan]
+rh_testnet = { key = "any", url = "https://explorer.testnet.chain.robinhood.com/api", chain = 46630 }
