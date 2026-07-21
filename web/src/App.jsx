@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract, useReadContracts } from "wagmi";
 import { readContract, writeContract, waitForTransactionReceipt } from "wagmi/actions";
-import { parseUnits, formatUnits, maxUint256 } from "viem";
+import { parseUnits, formatUnits, maxUint256, isAddress } from "viem";
 import { config, robinhoodTestnet } from "./wagmi";
 import { capsuleAbi, erc20Abi } from "./abi";
 import { CAPSULE, STOCK, EXPLORER, TOKENS, symbolOf } from "./contracts";
@@ -28,6 +28,7 @@ const T = {
     connectPrompt: "캡슐을 만들려면 먼저 지갑을 연결하세요.",
     balance: "내 잔액", faucet: "테스트 토큰 1,000개 받기",
     asset: "자산 선택", amount: "잠글 금액", dur: "락 기간", msg: "미래의 나에게 (선택)", msgPh: "존버하자!",
+    custom: "직접 입력", customPh: "토큰 컨트랙트 주소 0x…", customHold: "내 지갑에 있는 토큰 주소를 붙여넣으면 그 토큰을 그대로 잠급니다.", badAddr: "올바른 주소가 아닙니다 (0x… 42자).", needToken: "먼저 자산(토큰)을 선택하거나 주소를 입력하세요.",
     lock: "캡슐 잠그기", day: "일",
     sum_title: "요약", sum_lock: "잠글 금액", sum_unlock: "개화일", sum_penalty: "조기파기 페널티", sum_share: "보상 지분",
     sum_mintfee: "생성 수수료", sum_redeemfee: "회수 수수료", free: "무료", cap_reward: "보상 쌓임",
@@ -77,6 +78,7 @@ const T = {
     connectPrompt: "Connect a wallet to create a capsule.",
     balance: "Your balance", faucet: "Get 1,000 test tokens",
     asset: "Choose asset", amount: "Amount to lock", dur: "Lock period", msg: "To your future self (optional)", msgPh: "Hold the line!",
+    custom: "Custom", customPh: "Token contract address 0x…", customHold: "Paste a token address from your wallet to lock that token as-is.", badAddr: "Not a valid address (0x…, 42 chars).", needToken: "Pick an asset or enter a token address first.",
     lock: "Lock capsule", day: "d",
     sum_title: "Summary", sum_lock: "Amount", sum_unlock: "Bloom date", sum_penalty: "Early-break penalty", sum_share: "Reward share",
     sum_mintfee: "Creation fee", sum_redeemfee: "Redeem fee", free: "Free", cap_reward: "reward accrued",
@@ -345,38 +347,49 @@ function HeroCard({ t }) {
 }
 
 function Builder({ t, lang, address }) {
-  const [token, setToken] = useState(TOKENS[0].address);
+  const [sel, setSel] = useState(TOKENS[0].address); // 프리셋 주소 또는 "custom"
+  const [customAddr, setCustomAddr] = useState("");
   const [amount, setAmount] = useState("100");
   const [days, setDays] = useState(90);
   const [message, setMessage] = useState("");
   const { busy, status, err, run, setStatus, setErr } = useTxRunner(t);
-  const tok = TOKENS.find((x) => x.address === token) || TOKENS[0];
+
+  const isCustom = sel === "custom";
+  const activeToken = isCustom ? (isAddress(customAddr) ? customAddr : null) : sel;
+  const isMock = !!activeToken && TOKENS.some((x) => x.address.toLowerCase() === activeToken.toLowerCase());
+
+  const symRead = useReadContract({ address: activeToken || undefined, abi: erc20Abi, functionName: "symbol", query: { enabled: !!activeToken } });
+  const decRead = useReadContract({ address: activeToken || undefined, abi: erc20Abi, functionName: "decimals", query: { enabled: !!activeToken } });
+  const decimals = decRead.data != null ? Number(decRead.data) : 18;
+  const symbol = !activeToken ? "?" : isCustom ? (symRead.data || "…") : symbolOf(activeToken);
+  const badgeChar = symbol && symbol[0] === "m" ? symbol[1] : (symbol[0] || "?");
 
   const balance = useReadContract({
-    address: token, abi: erc20Abi, functionName: "balanceOf", args: [address],
-    query: { refetchInterval: 4000 },
+    address: activeToken || undefined, abi: erc20Abi, functionName: "balanceOf", args: [address],
+    query: { enabled: !!activeToken, refetchInterval: 4000 },
   });
-  const bal = balance.data ? Number(formatUnits(balance.data, 18)) : 0;
+  const bal = balance.data != null ? Number(formatUnits(balance.data, decimals)) : 0;
   const amt = Number(amount) || 0;
 
   async function faucet() {
-    await run(t.fauceting, () => sendTx({ address: token, abi: erc20Abi, functionName: "faucet", args: [parseUnits("1000", 18)] }));
+    await run(t.fauceting, () => sendTx({ address: activeToken, abi: erc20Abi, functionName: "faucet", args: [parseUnits("1000", decimals)] }));
     balance.refetch();
   }
 
   async function createCapsule() {
-    const amtWei = parseUnits(amount || "0", 18);
+    if (!activeToken) { setErr(true); setStatus(t.needToken); return; }
+    const amtWei = parseUnits(amount || "0", decimals);
     if (balance.data != null && balance.data < amtWei) {
       setErr(true); setStatus(t.needFaucet); return;
     }
     await run(t.approving, async () => {
-      const allowance = await readContract(config, { address: token, abi: erc20Abi, functionName: "allowance", args: [address, CAPSULE] });
+      const allowance = await readContract(config, { address: activeToken, abi: erc20Abi, functionName: "allowance", args: [address, CAPSULE] });
       if (allowance < amtWei) {
-        await sendTx({ address: token, abi: erc20Abi, functionName: "approve", args: [CAPSULE, maxUint256] });
+        await sendTx({ address: activeToken, abi: erc20Abi, functionName: "approve", args: [CAPSULE, maxUint256] });
       }
       setStatus(t.minting);
       const unlock = BigInt(Math.floor(Date.now() / 1000) + days * 86400);
-      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [token, amtWei, unlock, message || ""] });
+      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [activeToken, amtWei, unlock, message || ""] });
     });
     balance.refetch();
   }
@@ -384,27 +397,41 @@ function Builder({ t, lang, address }) {
   return (
     <>
       <div className="bal-card" style={{ marginBottom: 24 }}>
-        <div><div className="k">{t.balance}</div><div className="v">{bal.toLocaleString()} <small>{tok.symbol}</small></div></div>
-        <button className="btn-ghost" disabled={busy} onClick={faucet}>{t.faucet} ({tok.symbol})</button>
+        <div><div className="k">{t.balance}</div><div className="v">{bal.toLocaleString()} <small>{symbol}</small></div></div>
+        {isMock && <button className="btn-ghost" disabled={busy} onClick={faucet}>{t.faucet} ({symbol})</button>}
       </div>
 
       <div className="builder-grid">
         <div className="builder">
           <div className="field">
             <label>{t.asset}</label>
-            <div className="durs" style={{ gridTemplateColumns: `repeat(${TOKENS.length}, 1fr)` }}>
+            <div className="durs" style={{ gridTemplateColumns: `repeat(${TOKENS.length + 1}, 1fr)` }}>
               {TOKENS.map((tt) => (
-                <button key={tt.address} className={"dur" + (token === tt.address ? " active" : "")} onClick={() => setToken(tt.address)}>
+                <button key={tt.address} className={"dur" + (sel === tt.address ? " active" : "")} onClick={() => setSel(tt.address)}>
                   <div className="d">{tt.symbol}</div>
                 </button>
               ))}
+              <button className={"dur" + (isCustom ? " active" : "")} onClick={() => setSel("custom")}>
+                <div className="d">{t.custom}</div>
+              </button>
             </div>
+            {isCustom && (
+              <div style={{ marginTop: 10 }}>
+                <div className="amount-in text">
+                  <input value={customAddr} placeholder={t.customPh} spellCheck={false}
+                    onChange={(e) => setCustomAddr(e.target.value.trim())} style={{ fontFamily: "var(--mono)", fontSize: 14 }} />
+                </div>
+                <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 8 }}>
+                  {customAddr && !isAddress(customAddr) ? t.badAddr : t.customHold}
+                </p>
+              </div>
+            )}
           </div>
           <div className="field">
             <label>{t.amount}</label>
             <div className="amount-in">
               <input value={amount} inputMode="decimal" onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} />
-              <span className="tk"><span className="badge">{tok.symbol.replace("m", "")[0]}</span>{tok.symbol}</span>
+              <span className="tk"><span className="badge">{badgeChar}</span>{symbol}</span>
             </div>
           </div>
           <div className="field">
@@ -421,14 +448,14 @@ function Builder({ t, lang, address }) {
             <label>{t.msg}</label>
             <div className="amount-in text"><input value={message} placeholder={t.msgPh} onChange={(e) => setMessage(e.target.value)} /></div>
           </div>
-          <button className="btn-primary" disabled={busy || !(amt > 0)} onClick={createCapsule}>{t.lock}</button>
+          <button className="btn-primary" disabled={busy || !(amt > 0) || !activeToken} onClick={createCapsule}>{t.lock}</button>
           {status && <div className={"status-line" + (err ? " err" : "")}>{status}</div>}
         </div>
 
         <div className="summary">
           <div className="sum-card">
             <h4>{t.sum_title}</h4>
-            <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} {tok.symbol}</span></div>
+            <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} {symbol}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_unlock}</span><span className="val">+{days}{t.day}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_mintfee}</span><span className="val">0.05%</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_redeemfee}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{t.free}</span></div>
