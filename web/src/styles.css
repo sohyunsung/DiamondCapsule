@@ -199,6 +199,17 @@ h2 { font-size: clamp(28px, 3.6vw, 38px); font-weight: 700; margin-top: 12px; }
 .contract-bar a { margin-left: auto; color: var(--rh-deep); font-weight: 620; font-size: 14px; text-decoration: none; }
 .contract-bar a:hover { text-decoration: underline; }
 
+/* FAQ */
+.faq { display: flex; flex-direction: column; gap: 12px; max-width: 780px; }
+.faq details { background: var(--ground); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px; transition: border-color .15s; }
+.faq details[open] { border-color: color-mix(in srgb, var(--rh) 35%, var(--line)); }
+.faq summary { list-style: none; cursor: pointer; font-weight: 640; font-size: 16px; padding: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--mono); font-size: 20px; color: var(--rh-deep); font-weight: 400; transition: transform .2s; }
+.faq details[open] summary::after { content: "−"; }
+.faq p { color: var(--muted); font-size: 15px; line-height: 1.65; padding: 0 0 18px; margin: 0; max-width: 62ch; }
+.faq summary:focus-visible { outline: 2px solid var(--rh); outline-offset: 3px; border-radius: 6px; }
+
 footer { padding: 40px 0 56px; }
 .foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 13.5px; }
 .foot .logo { font-size: 15px; color: var(--ink); }

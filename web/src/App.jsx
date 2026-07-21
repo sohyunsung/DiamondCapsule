@@ -48,6 +48,15 @@ const T = {
     c_lbl: "캡슐 컨트랙트 (Testnet)", c_link: "익스플로러에서 보기 →",
     foot: "Robinhood Chain 위의 타임캡슐 스톡 NFT",
     disclaimer: "데모입니다. 토큰화 주식은 실제 주식과 법적 지위가 다르며(의결권·소유권 제한), 투자에는 원금 손실 위험이 있습니다.",
+    faq_k: "자세히", faq_h: "작동 원리, 하나씩",
+    faq: [
+      { q: "잠근 동안에도 배당을 받나요?", a: "네. Robinhood Stock Token은 배당이 토큰 가치(multiplier)로 반영되는 방식이라, 캡슐에 잠겨 있어도 배당은 자동으로 쌓입니다. 토큰 개수는 그대로지만 만기에 꺼낼 때 더 가치 있는 토큰이 됩니다. 컨트랙트가 따로 하는 일 없이 복리로 굴러갑니다." },
+      { q: "조기파기 페널티는 어디로 가나요?", a: "만기까지 버틴 다른 캡슐 보유자들에게 분배됩니다. 각자의 몫(지분)은 ‘잠근 금액 × 잠근 기간’에 비례합니다. 오래·많이 잠글수록 페널티 풀에서 더 많이 받습니다. 페널티가 들어오는 순간의 참여자끼리 나누는 방식으로 공평하게 누적됩니다." },
+      { q: "보상은 어떤 자산으로 받나요?", a: "잠근 것과 같은 주식 토큰으로 받습니다. 스테이블코인(USDG 등)으로 바꿔 지급할 수도 있지만, 그러면 스왑 수수료·슬리피지가 발생하고 DEX 의존성이 생깁니다. 초기에는 수수료 없이 단순·안전하게 같은 토큰으로 지급합니다." },
+      { q: "여러 종류의 주식 토큰을 잠글 수 있나요?", a: "네. 캡슐은 특정 토큰에 묶여 있지 않습니다. 토큰마다 별도의 보상 풀이 관리되어, TSLA 페널티는 TSLA 홀더에게, AMZN 페널티는 AMZN 홀더에게 갑니다." },
+      { q: "자산은 누가 보관하나요? 서비스가 사라지면요?", a: "회사가 아니라 스마트 컨트랙트가 보관합니다(비수탁). 인출·정지·업그레이드 권한이 코드에 없어 개발자도 손댈 수 없습니다. 이 사이트가 사라져도 컨트랙트는 체인에 남아, 익스플로러에서 직접 회수할 수 있습니다." },
+      { q: "운영에 서버가 필요한가요?", a: "아니요. 로직은 블록체인이 실행하고, 이 화면은 정적 파일입니다. 브라우저가 RPC로 체인과 직접 통신합니다. 관리할 서버나 DB가 없습니다." },
+    ],
   },
   en: {
     nav_how: "How it works", nav_build: "Create", nav_trust: "Trust",
@@ -88,6 +97,15 @@ const T = {
     c_lbl: "Capsule contract (Testnet)", c_link: "View on explorer →",
     foot: "Time-capsule stock NFTs on Robinhood Chain",
     disclaimer: "Demo. Tokenized stocks differ legally from real shares (limited voting/ownership), and investing carries risk of loss.",
+    faq_k: "In depth", faq_h: "How it works, one by one",
+    faq: [
+      { q: "Do I still earn dividends while locked?", a: "Yes. Robinhood Stock Tokens reflect dividends in the token's value (a multiplier), so dividends accrue automatically even while your tokens are locked in a capsule. Your token count stays the same, but each token is worth more at maturity. It compounds without the contract doing anything." },
+      { q: "Where does the early-break penalty go?", a: "It's distributed to other capsule holders who stay to maturity. Each holder's share is proportional to ‘amount locked × time locked’. The longer and larger you lock, the bigger your slice of the penalty pool. It accrues fairly — split among whoever is locked at the moment each penalty arrives." },
+      { q: "What asset are rewards paid in?", a: "The same stock token you locked. We could convert to a stablecoin (like USDG), but that incurs swap fees and slippage and adds a DEX dependency. Early on we pay in the same token — simpler, safer, no fees." },
+      { q: "Can I lock different kinds of stock tokens?", a: "Yes. A capsule isn't tied to one token. Each token has its own reward pool, so TSLA penalties go to TSLA holders and AMZN penalties go to AMZN holders." },
+      { q: "Who custodies the assets? What if the service disappears?", a: "A smart contract holds them, not a company (non-custodial). No withdraw, pause, or upgrade powers exist in the code — not even the developer can touch them. If this site vanishes, the contract stays on-chain and you can redeem directly from the explorer." },
+      { q: "Do you need a server to run this?", a: "No. The logic runs on the blockchain, and this page is static files. Your browser talks to the chain directly via RPC. There's no server or database to maintain." },
+    ],
   },
 };
 
@@ -134,7 +152,7 @@ export default function App() {
         <div className="wrap nav-in">
           <div className="logo"><span className="gem">💎</span>Diamond Capsule</div>
           <div className="nav-links">
-            <a href="#how">{t.nav_how}</a><a href="#build">{t.nav_build}</a><a href="#trust">{t.nav_trust}</a>
+            <a href="#how">{t.nav_how}</a><a href="#learn">{t.faq_k}</a><a href="#build">{t.nav_build}</a><a href="#trust">{t.nav_trust}</a>
           </div>
           <div className="nav-right">
             <button className="theme-btn" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "☀️" : "🌙"}</button>
@@ -160,6 +178,18 @@ export default function App() {
           <div className="step"><div className="n">01</div><div className="icon">🔒</div><h3>{t.s1h}</h3><p>{t.s1p}</p></div>
           <div className="step"><div className="n">02</div><div className="icon">🌱</div><h3>{t.s2h}</h3><p>{t.s2p}</p></div>
           <div className="step"><div className="n">03</div><div className="icon">🌸</div><h3>{t.s3h}</h3><p>{t.s3p}</p></div>
+        </div>
+      </div></section>
+
+      <section id="learn" className="trust"><div className="wrap">
+        <div className="sec-head"><div className="kicker">{t.faq_k}</div><h2>{t.faq_h}</h2></div>
+        <div className="faq">
+          {t.faq.map((f, i) => (
+            <details key={i} open={i === 0}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
         </div>
       </div></section>
 
