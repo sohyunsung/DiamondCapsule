@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract } from "wagmi";
+import { useEffect, useState, useRef } from "react";
+import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract, useReadContracts } from "wagmi";
 import { readContract, writeContract, waitForTransactionReceipt } from "wagmi/actions";
 import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { config, robinhoodTestnet } from "./wagmi";
@@ -17,7 +17,7 @@ const T = {
     lead: "주식 토큰을 캡슐에 잠그세요. 끝까지 버티면 그대로 돌려받고, 그 사이 캡슐은 자라납니다. 중간에 깨면 페널티는 버틴 사람들의 몫이 됩니다.",
     cta1: "캡슐 만들기", cta2: "작동 방식 보기",
     chip1: "관리자 인출 불가", chip2: "컨트랙트가 보관", chip3: "24/7 온체인",
-    cc_tag: "예시", cc_progress: "개화까지",
+    cc_tag: "예시", cc_mine: "내 캡슐", cc_progress: "개화까지",
     cc_locked: "잠긴 자산", cc_unlock: "개화까지",
     how_k: "작동 방식", how_h: "잠근다 · 버틴다 · 개화한다",
     how_p: "세 단계가 전부입니다. 은행도, 중개인도, 관리자도 없습니다 — 규칙은 컨트랙트에 새겨져 있습니다.",
@@ -64,7 +64,7 @@ const T = {
     lead: "Lock your stock tokens in a capsule. Hold to maturity and get it all back — while the capsule grows. Break early, and your penalty rewards those who held.",
     cta1: "Create a capsule", cta2: "See how it works",
     chip1: "No admin withdrawals", chip2: "Held by the contract", chip3: "24/7 on-chain",
-    cc_tag: "Example", cc_progress: "to bloom",
+    cc_tag: "Example", cc_mine: "My capsule", cc_progress: "to bloom",
     cc_locked: "Locked", cc_unlock: "To bloom",
     how_k: "How it works", how_h: "Lock · Hold · Bloom",
     how_p: "Three steps, that's all. No bank, no broker, no admin — the rules are carved into the contract.",
@@ -234,10 +234,6 @@ export default function App() {
 }
 
 function Hero({ t }) {
-  const [secs, setSecs] = useState(128 * 86400 + 4 * 3600 + 12 * 60);
-  useEffect(() => { const id = setInterval(() => setSecs((s) => s - 1), 1000); return () => clearInterval(id); }, []);
-  const d = Math.floor(secs / 86400), h = Math.floor((secs % 86400) / 3600), m = Math.floor((secs % 3600) / 60);
-  const C = 2 * Math.PI * 80;
   const { connect, connectors } = useConnect();
   const { isConnected } = useAccount();
   return (
@@ -256,24 +252,90 @@ function Hero({ t }) {
           <span className="chip">🕐 {t.chip3}</span>
         </div>
       </div>
+      <HeroCard t={t} />
+    </div></header>
+  );
+}
+
+function HeroCard({ t }) {
+  const { address, isConnected, chainId } = useAccount();
+  const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+  const demoUnlock = useRef(Math.floor(Date.now() / 1000) + 128 * 86400 + 4 * 3600 + 12 * 60).current;
+  useEffect(() => { const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000); return () => clearInterval(id); }, []);
+
+  const onNet = isConnected && chainId === robinhoodTestnet.id;
+  const nextId = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "nextId", query: { enabled: onNet, refetchInterval: 6000 } });
+  const count = nextId.data ? Number(nextId.data) : 0;
+  const ids = Array.from({ length: count }, (_, i) => i);
+  const owners = useReadContracts({
+    contracts: ids.map((id) => ({ address: CAPSULE, abi: capsuleAbi, functionName: "ownerOf", args: [BigInt(id)] })),
+    query: { enabled: onNet && count > 0 && !!address, refetchInterval: 8000 },
+  });
+  let newestId = -1;
+  if (owners.data && address) {
+    for (let i = ids.length - 1; i >= 0; i--) {
+      const r = owners.data[i];
+      if (r?.status === "success" && String(r.result).toLowerCase() === address.toLowerCase()) { newestId = i; break; }
+    }
+  }
+  const cap = useReadContract({
+    address: CAPSULE, abi: capsuleAbi, functionName: "capsules", args: [BigInt(newestId < 0 ? 0 : newestId)],
+    query: { enabled: newestId >= 0, refetchInterval: 5000 },
+  });
+
+  const C = 2 * Math.PI * 80;
+
+  // 실제 내 최신 캡슐
+  if (newestId >= 0 && cap.data) {
+    const d = cap.data;
+    const get = (i, n) => (Array.isArray(d) ? d[i] : d[n]);
+    const amt = Number(formatUnits(get(1, "amount"), 18));
+    const createdAt = Number(get(2, "createdAt")), unlock = Number(get(3, "unlockTime"));
+    const cstatus = Number(get(5, "status"));
+    const st = stageOf(cstatus, createdAt, unlock, now, t);
+    const remaining = unlock - now;
+    const progress = cstatus === 0 ? Math.max(0, Math.min(1, (now - createdAt) / (unlock - createdAt))) : 1;
+    const cdText = cstatus === 1 ? t.redeemed : cstatus === 2 ? t.broken : remaining <= 0 ? t.bloomed : fmtCountdown(remaining, t.day);
+    return (
       <div className="capsule-card">
-        <div className="cc-top"><span className="cc-tag">{t.cc_tag}</span><span className="cc-id mono">#0042</span></div>
+        <div className="cc-top"><span className="cc-tag">{t.cc_mine}</span><span className="cc-id mono">#{newestId}</span></div>
         <div className="ring-wrap">
           <svg className="ring" width="180" height="180" viewBox="0 0 180 180">
             <circle className="ring-bg" cx="90" cy="90" r="80" fill="none" strokeWidth="10" />
-            <circle className="ring-fg" cx="90" cy="90" r="80" fill="none" strokeWidth="10"
-              strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - 0.64)).toFixed(1)} />
+            <circle className="ring-fg" cx="90" cy="90" r="80" fill="none" strokeWidth="10" strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - progress)).toFixed(1)} />
           </svg>
-          <span className="stage-emoji">🌳</span>
+          <span className="stage-emoji">{st.emoji}</span>
         </div>
-        <div className="stage-label">{t.stTree}</div>
-        <div className="stage-sub">{t.cc_progress} <span className="mono">64%</span></div>
+        <div className="stage-label">{st.label}</div>
+        <div className="stage-sub">{t.cc_progress} <span className="mono">{Math.round(progress * 100)}%</span></div>
         <div className="cc-stats">
-          <div className="cc-stat"><div className="k">{t.cc_locked}</div><div className="v mono">100 <small>mTSLA</small></div></div>
-          <div className="cc-stat"><div className="k">{t.cc_unlock}</div><div className="v mono countdown">{d}d {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}</div></div>
+          <div className="cc-stat"><div className="k">{t.cc_locked}</div><div className="v mono">{amt.toLocaleString()} <small>mTSLA</small></div></div>
+          <div className="cc-stat"><div className="k">{t.cc_unlock}</div><div className="v mono countdown">{cdText}</div></div>
         </div>
       </div>
-    </div></header>
+    );
+  }
+
+  // 폴백: 예시 카드 (미연결 / 캡슐 없음)
+  const dr = demoUnlock - now;
+  const dd = Math.floor(dr / 86400), dh = Math.floor((dr % 86400) / 3600), dm = Math.floor((dr % 3600) / 60);
+  return (
+    <div className="capsule-card">
+      <div className="cc-top"><span className="cc-tag">{t.cc_tag}</span><span className="cc-id mono">#0042</span></div>
+      <div className="ring-wrap">
+        <svg className="ring" width="180" height="180" viewBox="0 0 180 180">
+          <circle className="ring-bg" cx="90" cy="90" r="80" fill="none" strokeWidth="10" />
+          <circle className="ring-fg" cx="90" cy="90" r="80" fill="none" strokeWidth="10" strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - 0.64)).toFixed(1)} />
+        </svg>
+        <span className="stage-emoji">🌳</span>
+      </div>
+      <div className="stage-label">{t.stTree}</div>
+      <div className="stage-sub">{t.cc_progress} <span className="mono">64%</span></div>
+      <div className="cc-stats">
+        <div className="cc-stat"><div className="k">{t.cc_locked}</div><div className="v mono">100 <small>mTSLA</small></div></div>
+        <div className="cc-stat"><div className="k">{t.cc_unlock}</div><div className="v mono countdown">{dd}d {String(dh).padStart(2, "0")}:{String(dm).padStart(2, "0")}</div></div>
+      </div>
+    </div>
   );
 }
 
