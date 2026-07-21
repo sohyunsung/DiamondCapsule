@@ -1,0 +1,16 @@
+# Foundry
+/out/
+/cache/
+/broadcast/
+
+# 환경변수 (개인키·RPC 주소 — 절대 커밋 금지!)
+.env
+.env.local
+
+# 프론트엔드 (나중에)
+node_modules/
+.next/
+dist/
+
+# OS
+.DS_Store
