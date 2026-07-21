@@ -2,6 +2,8 @@
 
 주식 토큰을 미래 시점까지 잠그는 **타임캡슐 NFT** dApp. (Robinhood Chain, EVM)
 
+**🌐 라이브 데모: https://sohyunsung.github.io/DiamondCapsule/** (Robinhood Chain Testnet)
+
 > "미래의 나에게 락을 걸고, 중간에 못 깨게 서약하고, 그 여정이 NFT로 살아 움직인다."
 
 ## 컨셉
