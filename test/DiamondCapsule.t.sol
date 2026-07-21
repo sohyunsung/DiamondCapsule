@@ -105,6 +105,36 @@ contract DiamondCapsuleTest is Test {
         assertApproxEqAbs(stock.balanceOf(alice), pA + toPool, 1e12, "alice gets principal + reward");
     }
 
+    // 핵심: 토큰별 풀 분리 — mTSLA 페널티는 mAMZN 홀더에게 절대 가지 않는다
+    function test_PerTokenIsolation() public {
+        address carol = address(0xCA401);
+        MockStockToken amzn = new MockStockToken("Mock AMZN", "mAMZN");
+
+        vm.startPrank(carol);
+        stock.faucet(AMOUNT);
+        stock.approve(address(cap), type(uint256).max);
+        vm.stopPrank();
+        vm.startPrank(bob);
+        amzn.faucet(AMOUNT);
+        amzn.approve(address(cap), type(uint256).max);
+        vm.stopPrank();
+
+        uint64 unlock = uint64(block.timestamp + 60 days);
+        vm.prank(alice);
+        uint256 idA = cap.mint(address(stock), AMOUNT, unlock, ""); // mTSLA (버팀)
+        vm.prank(bob);
+        uint256 idB = cap.mint(address(amzn), AMOUNT, unlock, "");  // mAMZN (버팀)
+        vm.prank(carol);
+        uint256 idC = cap.mint(address(stock), AMOUNT, unlock, ""); // mTSLA (파기)
+
+        vm.prank(carol);
+        cap.breakEarly(idC);
+
+        assertGt(cap.pendingReward(idA), 0, "mTSLA holder gets reward");
+        assertEq(cap.pendingReward(idB), 0, "mAMZN holder untouched");
+        assertEq(cap.accRewardPerShare(address(amzn)), 0, "amzn pool untouched");
+    }
+
     function test_CannotRedeemBeforeUnlock() public {
         uint64 unlock = uint64(block.timestamp + 30 days);
         vm.prank(alice);
