@@ -49,6 +49,7 @@ const T = {
     t3h: "전부 검증 가능", t3p: "모든 규칙과 잔액이 온체인에 공개됩니다. 소스 코드도 익스플로러에서 확인할 수 있습니다.",
     c_lbl: "캡슐 컨트랙트 (Testnet)", c_link: "익스플로러에서 보기 →",
     foot: "Robinhood Chain 위의 타임캡슐 스톡 NFT",
+    stat_people: "참여자", stat_caps: "생성된 캡슐", stat_locked: "현재 잠긴 캡슐",
     disclaimer: "데모입니다. 토큰화 주식은 실제 주식과 법적 지위가 다르며(의결권·소유권 제한), 투자에는 원금 손실 위험이 있습니다.",
     faq_k: "자세히", faq_h: "작동 원리, 하나씩",
     faq: [
@@ -99,6 +100,7 @@ const T = {
     t3h: "Fully verifiable", t3p: "Every rule and balance is public on-chain. The source code is verifiable on the explorer.",
     c_lbl: "Capsule contract (Testnet)", c_link: "View on explorer →",
     foot: "Time-capsule stock NFTs on Robinhood Chain",
+    stat_people: "Participants", stat_caps: "Capsules created", stat_locked: "Currently locked",
     disclaimer: "Demo. Tokenized stocks differ legally from real shares (limited voting/ownership), and investing carries risk of loss.",
     faq_k: "In depth", faq_h: "How it works, one by one",
     faq: [
@@ -149,6 +151,7 @@ const T = {
     t3h: "全部可验证", t3p: "所有规则和余额都在链上公开。源代码也可在区块浏览器验证。",
     c_lbl: "胶囊合约 (测试网)", c_link: "在区块浏览器查看 →",
     foot: "Robinhood Chain 上的时间胶囊股票 NFT",
+    stat_people: "参与者", stat_caps: "已创建胶囊", stat_locked: "当前锁定",
     disclaimer: "这是演示。代币化股票在法律地位上与真实股票不同(投票权、所有权受限)，投资有本金损失风险。",
     faq_k: "详解", faq_h: "逐条讲解工作原理",
     faq: [
@@ -221,6 +224,8 @@ export default function App() {
 
       <Hero t={t} />
 
+      <Stats t={t} />
+
       <section id="how"><div className="wrap">
         <div className="sec-head">
           <div className="kicker">{t.how_k}</div><h2>{t.how_h}</h2><p>{t.how_p}</p>
@@ -285,6 +290,46 @@ export default function App() {
         <p className="disclaimer">{t.disclaimer}</p>
       </div></footer>
     </>
+  );
+}
+
+function Stats({ t }) {
+  const nextId = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "nextId", query: { refetchInterval: 10000 } });
+  const count = nextId.data ? Number(nextId.data) : 0;
+  const ids = Array.from({ length: count }, (_, i) => i);
+
+  const owners = useReadContracts({
+    contracts: ids.map((id) => ({ address: CAPSULE, abi: capsuleAbi, functionName: "ownerOf", args: [BigInt(id)] })),
+    query: { enabled: count > 0, refetchInterval: 15000 },
+  });
+  const caps = useReadContracts({
+    contracts: ids.map((id) => ({ address: CAPSULE, abi: capsuleAbi, functionName: "capsules", args: [BigInt(id)] })),
+    query: { enabled: count > 0, refetchInterval: 15000 },
+  });
+
+  const uniq = new Set();
+  if (owners.data) owners.data.forEach((r) => { if (r?.status === "success") uniq.add(String(r.result).toLowerCase()); });
+  let lockedNow = 0;
+  if (caps.data) caps.data.forEach((r) => {
+    if (r?.status === "success") { const d = r.result; const s = Number(Array.isArray(d) ? d[5] : d.status); if (s === 0) lockedNow++; }
+  });
+
+  const tiles = [
+    { v: uniq.size, k: t.stat_people },
+    { v: count, k: t.stat_caps },
+    { v: lockedNow, k: t.stat_locked },
+  ];
+  return (
+    <section style={{ paddingTop: 0, paddingBottom: 44 }}><div className="wrap">
+      <div className="stats-row">
+        {tiles.map((s, i) => (
+          <div className="stat-tile" key={i}>
+            <div className="sv mono">{s.v.toLocaleString()}</div>
+            <div className="sk">{s.k}</div>
+          </div>
+        ))}
+      </div>
+    </div></section>
   );
 }
 

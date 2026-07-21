@@ -199,6 +199,12 @@ h2 { font-size: clamp(28px, 3.6vw, 38px); font-weight: 700; margin-top: 12px; }
 .contract-bar a { margin-left: auto; color: var(--rh-deep); font-weight: 620; font-size: 14px; text-decoration: none; }
 .contract-bar a:hover { text-decoration: underline; }
 
+/* Stats */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.stat-tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 20px; text-align: center; }
+.stat-tile .sv { font-size: 34px; font-weight: 720; color: var(--rh-deep); line-height: 1; }
+.stat-tile .sk { font-size: 13px; color: var(--muted); margin-top: 8px; font-weight: 560; }
+
 /* FAQ */
 .faq { display: flex; flex-direction: column; gap: 12px; max-width: 780px; }
 .faq details { background: var(--ground); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px; transition: border-color .15s; }
