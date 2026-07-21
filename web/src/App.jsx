@@ -4,7 +4,7 @@ import { readContract, writeContract, waitForTransactionReceipt } from "wagmi/ac
 import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { config, robinhoodTestnet } from "./wagmi";
 import { capsuleAbi, erc20Abi } from "./abi";
-import { CAPSULE, STOCK, EXPLORER } from "./contracts";
+import { CAPSULE, STOCK, EXPLORER, TOKENS, symbolOf } from "./contracts";
 
 const DUR = [30, 90, 180, 365];
 
@@ -26,8 +26,8 @@ const T = {
     s3h: "개화한다", s3p: "만기가 되면 원금 전액과 쌓인 보상을 회수합니다. 캡슐 NFT는 기념품으로 남습니다.",
     b_k: "캡슐 만들기", b_h: "얼마를, 얼마나 오래", b_p: "금액과 기간을 정하면 페널티와 보상 조건이 실시간으로 계산됩니다.",
     connectPrompt: "캡슐을 만들려면 먼저 지갑을 연결하세요.",
-    balance: "내 mTSLA 잔액", faucet: "테스트 토큰 1,000개 받기",
-    amount: "잠글 금액", dur: "락 기간", msg: "미래의 나에게 (선택)", msgPh: "존버하자!",
+    balance: "내 잔액", faucet: "테스트 토큰 1,000개 받기",
+    asset: "자산 선택", amount: "잠글 금액", dur: "락 기간", msg: "미래의 나에게 (선택)", msgPh: "존버하자!",
     lock: "캡슐 잠그기", day: "일",
     sum_title: "요약", sum_lock: "잠글 금액", sum_unlock: "개화일", sum_penalty: "조기파기 페널티", sum_share: "보상 지분",
     sum_mintfee: "생성 수수료", sum_redeemfee: "회수 수수료", free: "무료", cap_reward: "보상 쌓임",
@@ -75,8 +75,8 @@ const T = {
     s3h: "Bloom", s3p: "At maturity, withdraw your full principal plus accrued rewards. The capsule NFT stays as a keepsake.",
     b_k: "Create", b_h: "How much, how long", b_p: "Set the amount and duration — penalty and reward terms compute in real time.",
     connectPrompt: "Connect a wallet to create a capsule.",
-    balance: "Your mTSLA balance", faucet: "Get 1,000 test tokens",
-    amount: "Amount to lock", dur: "Lock period", msg: "To your future self (optional)", msgPh: "Hold the line!",
+    balance: "Your balance", faucet: "Get 1,000 test tokens",
+    asset: "Choose asset", amount: "Amount to lock", dur: "Lock period", msg: "To your future self (optional)", msgPh: "Hold the line!",
     lock: "Lock capsule", day: "d",
     sum_title: "Summary", sum_lock: "Amount", sum_unlock: "Bloom date", sum_penalty: "Early-break penalty", sum_share: "Reward share",
     sum_mintfee: "Creation fee", sum_redeemfee: "Redeem fee", free: "Free", cap_reward: "reward accrued",
@@ -293,9 +293,10 @@ function HeroCard({ t }) {
   if (newestId >= 0 && cap.data) {
     const d = cap.data;
     const get = (i, n) => (Array.isArray(d) ? d[i] : d[n]);
-    const amt = Number(formatUnits(get(1, "amount"), 18));
+    const amt = Number(formatUnits(get(1, "principal"), 18));
     const createdAt = Number(get(2, "createdAt")), unlock = Number(get(3, "unlockTime"));
     const cstatus = Number(get(5, "status"));
+    const sym = symbolOf(get(0, "token"));
     const st = stageOf(cstatus, createdAt, unlock, now, t);
     const remaining = unlock - now;
     const progress = cstatus === 0 ? Math.max(0, Math.min(1, (now - createdAt) / (unlock - createdAt))) : 1;
@@ -313,7 +314,7 @@ function HeroCard({ t }) {
         <div className="stage-label">{st.label}</div>
         <div className="stage-sub">{t.cc_progress} <span className="mono">{Math.round(progress * 100)}%</span></div>
         <div className="cc-stats">
-          <div className="cc-stat"><div className="k">{t.cc_locked}</div><div className="v mono">{amt.toLocaleString()} <small>mTSLA</small></div></div>
+          <div className="cc-stat"><div className="k">{t.cc_locked}</div><div className="v mono">{amt.toLocaleString()} <small>{sym}</small></div></div>
           <div className="cc-stat"><div className="k">{t.cc_unlock}</div><div className="v mono countdown">{cdText}</div></div>
         </div>
       </div>
@@ -344,20 +345,22 @@ function HeroCard({ t }) {
 }
 
 function Builder({ t, lang, address }) {
+  const [token, setToken] = useState(TOKENS[0].address);
   const [amount, setAmount] = useState("100");
   const [days, setDays] = useState(90);
   const [message, setMessage] = useState("");
   const { busy, status, err, run, setStatus, setErr } = useTxRunner(t);
+  const tok = TOKENS.find((x) => x.address === token) || TOKENS[0];
 
   const balance = useReadContract({
-    address: STOCK, abi: erc20Abi, functionName: "balanceOf", args: [address],
+    address: token, abi: erc20Abi, functionName: "balanceOf", args: [address],
     query: { refetchInterval: 4000 },
   });
   const bal = balance.data ? Number(formatUnits(balance.data, 18)) : 0;
   const amt = Number(amount) || 0;
 
   async function faucet() {
-    await run(t.fauceting, () => sendTx({ address: STOCK, abi: erc20Abi, functionName: "faucet", args: [parseUnits("1000", 18)] }));
+    await run(t.fauceting, () => sendTx({ address: token, abi: erc20Abi, functionName: "faucet", args: [parseUnits("1000", 18)] }));
     balance.refetch();
   }
 
@@ -367,13 +370,13 @@ function Builder({ t, lang, address }) {
       setErr(true); setStatus(t.needFaucet); return;
     }
     await run(t.approving, async () => {
-      const allowance = await readContract(config, { address: STOCK, abi: erc20Abi, functionName: "allowance", args: [address, CAPSULE] });
+      const allowance = await readContract(config, { address: token, abi: erc20Abi, functionName: "allowance", args: [address, CAPSULE] });
       if (allowance < amtWei) {
-        await sendTx({ address: STOCK, abi: erc20Abi, functionName: "approve", args: [CAPSULE, maxUint256] });
+        await sendTx({ address: token, abi: erc20Abi, functionName: "approve", args: [CAPSULE, maxUint256] });
       }
       setStatus(t.minting);
       const unlock = BigInt(Math.floor(Date.now() / 1000) + days * 86400);
-      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [STOCK, amtWei, unlock, message || ""] });
+      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [token, amtWei, unlock, message || ""] });
     });
     balance.refetch();
   }
@@ -381,17 +384,27 @@ function Builder({ t, lang, address }) {
   return (
     <>
       <div className="bal-card" style={{ marginBottom: 24 }}>
-        <div><div className="k">{t.balance}</div><div className="v">{bal.toLocaleString()} <small>mTSLA</small></div></div>
-        <button className="btn-ghost" disabled={busy} onClick={faucet}>{t.faucet}</button>
+        <div><div className="k">{t.balance}</div><div className="v">{bal.toLocaleString()} <small>{tok.symbol}</small></div></div>
+        <button className="btn-ghost" disabled={busy} onClick={faucet}>{t.faucet} ({tok.symbol})</button>
       </div>
 
       <div className="builder-grid">
         <div className="builder">
           <div className="field">
+            <label>{t.asset}</label>
+            <div className="durs" style={{ gridTemplateColumns: `repeat(${TOKENS.length}, 1fr)` }}>
+              {TOKENS.map((tt) => (
+                <button key={tt.address} className={"dur" + (token === tt.address ? " active" : "")} onClick={() => setToken(tt.address)}>
+                  <div className="d">{tt.symbol}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
             <label>{t.amount}</label>
             <div className="amount-in">
               <input value={amount} inputMode="decimal" onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} />
-              <span className="tk"><span className="badge">T</span>mTSLA</span>
+              <span className="tk"><span className="badge">{tok.symbol.replace("m", "")[0]}</span>{tok.symbol}</span>
             </div>
           </div>
           <div className="field">
@@ -415,7 +428,7 @@ function Builder({ t, lang, address }) {
         <div className="summary">
           <div className="sum-card">
             <h4>{t.sum_title}</h4>
-            <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} mTSLA</span></div>
+            <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} {tok.symbol}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_unlock}</span><span className="val">+{days}{t.day}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_mintfee}</span><span className="val">0.05%</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_redeemfee}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{t.free}</span></div>
@@ -492,8 +505,9 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
 
   const d = cap.data;
   const get = (i, name) => (Array.isArray(d) ? d[i] : d[name]);
-  const amtRaw = get(1, "amount"), createdAt = get(2, "createdAt"), unlockTime = get(3, "unlockTime");
+  const tokenAddr = get(0, "token"), amtRaw = get(1, "principal"), createdAt = get(2, "createdAt"), unlockTime = get(3, "unlockTime");
   const message = get(4, "message"), cstatus = Number(get(5, "status"));
+  const sym = symbolOf(tokenAddr);
 
   const amt = Number(formatUnits(amtRaw, 18));
   const unlock = Number(unlockTime);
@@ -518,7 +532,7 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
       <div className="emoji">{st.emoji}</div>
       <div className="cbody">
         <div className="ctop">
-          <span className="amt">{amt.toLocaleString()} mTSLA</span>
+          <span className="amt">{amt.toLocaleString()} {sym}</span>
           <span className={"pill " + pill[0]}>{pill[1]}</span>
           {cstatus === 0 && rewardAmt > 0 && (
             <span className="pill locked">＋{rewardAmt.toLocaleString(undefined, { maximumFractionDigits: 4 })} {t.cap_reward}</span>

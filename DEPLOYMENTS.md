@@ -7,6 +7,8 @@
 |---|---|
 | DiamondCapsule v2 | `0xd4Bd39db3b856454549A76F00D61Ca2dBF0aB286` |
 | MockStockToken (mTSLA) | `0xc1828aE84319051d8343CDc68a2eda85Dc34E1D2` |
+| MockStockToken (mAMZN) | `0x737983Af59F0c942ABb55d19E80D6D412f103aD5` |
+| MockStockToken (mNVDA) | `0x7C4aF317AC720e2CbE41CC949748Ea8d12Fc9096` |
 
 - 수수료: 생성 0.05%, 회수 무료, 페널티 중 0.5%만 개발자(나머지 홀더 보상 풀)
 - 익스플로러: https://explorer.testnet.chain.robinhood.com/address/0xd4Bd39db3b856454549A76F00D61Ca2dBF0aB286

@@ -16,7 +16,7 @@ contract DiamondCapsuleTest is Test {
 
     function setUp() public {
         cap = new DiamondCapsule(feeRecipient);
-        stock = new MockStockToken();
+        stock = new MockStockToken("Mock TSLA", "mTSLA");
         _fund(alice);
         _fund(bob);
     }
