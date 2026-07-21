@@ -109,6 +109,55 @@ const T = {
       { q: "Who custodies the assets? What if the service disappears?", a: "A smart contract holds them, not a company (non-custodial). No withdraw, pause, or upgrade powers exist in the code — not even the developer can touch them. If this site vanishes, the contract stays on-chain and you can redeem directly from the explorer." },
     ],
   },
+  zh: {
+    nav_how: "工作原理", nav_build: "创建胶囊", nav_trust: "信任",
+    connect: "连接钱包", disconnect: "断开", wrongNet: "切换网络",
+    eyebrow: "Robinhood Chain · 链上 · 非托管",
+    h1a: "给未来的自己一个", h1b: "承诺。",
+    lead: "把股票代币锁进胶囊。坚持到到期就能全额取回，期间胶囊还会成长。中途打破，罚金归坚持到底的人所有。",
+    cta1: "创建胶囊", cta2: "查看工作原理",
+    chip1: "管理员无法提取", chip2: "由合约保管", chip3: "24/7 链上",
+    cc_tag: "示例", cc_mine: "我的胶囊", cc_progress: "距开花",
+    cc_locked: "锁定资产", cc_unlock: "距开花",
+    how_k: "工作原理", how_h: "锁定 · 坚持 · 开花",
+    how_p: "只有三步。没有银行、没有中介、没有管理员——规则都刻在合约里。",
+    s1h: "锁定", s1p: "存入股票代币并设定到期时间。代币会变成你的胶囊(NFT)，由合约保管。",
+    s2h: "坚持", s2p: "随着时间推移，胶囊不断成长——从种子到盛开。每当有人提前打破，其罚金会在那一刻立即分配给正在坚持的你。而且锁定的股票代币还会自动累积分红(multiplier)。",
+    s3h: "开花", s3p: "到期后，取回全部本金加上累积的奖励。胶囊 NFT 作为纪念保留。",
+    b_k: "创建胶囊", b_h: "锁多少，锁多久", b_p: "设定金额和期限，罚金与奖励条件会实时计算。",
+    connectPrompt: "请先连接钱包以创建胶囊。",
+    balance: "我的余额", faucet: "领取 1,000 个测试代币",
+    asset: "选择资产", amount: "锁定金额", dur: "锁定期限", msg: "给未来的自己 (可选)", msgPh: "拿住别卖！",
+    custom: "自定义", customPh: "代币合约地址 0x…", customHold: "粘贴你钱包里的代币地址，即可锁定该代币。", badAddr: "不是有效地址 (0x…，42 位)。", needToken: "请先选择资产或输入代币地址。",
+    lock: "锁定胶囊", day: "天",
+    sum_title: "摘要", sum_lock: "锁定金额", sum_unlock: "开花日", sum_penalty: "提前打破罚金", sum_share: "奖励份额",
+    sum_mintfee: "创建费", sum_redeemfee: "取回费", free: "免费", cap_reward: "奖励累积",
+    w_title: "奖励份额权重", w_note_a: "即使金额相同，", w_note_b: "锁得越久", w_note_c: "，从罚金池分到的份额就越大。份额 = 金额 × 锁定时长。",
+    warn_a: "在到期前打破，你会损失 ", warn_b: "10%", warn_c: "，这笔罚金将分配给坚持到底的其他胶囊持有者。",
+    myCaps: "我的胶囊", empty: "还没有胶囊。在上方创建一个吧。",
+    locked: "持有中", redeemed: "已取回", broken: "已打破",
+    toBloom: "距开花", bloomed: "已开花 — 可取回", redeem: "取回", breakE: "提前打破 -10%",
+    stSeed: "种子", stSprout: "嫩芽", stGrow: "成长中", stTree: "大树", stBloom: "盛开", withered: "枯萎",
+    breakWarn: "确定要打破吗？你将损失 10%，罚金会给到坚持到底的人。",
+    approving: "正在授权代币… 请在钱包中确认", minting: "正在创建胶囊… 请在钱包中确认",
+    fauceting: "正在领取代币… 请在钱包中确认", breaking: "正在打破… 请在钱包中确认", redeeming: "正在取回… 请在钱包中确认",
+    done: "完成！🎉", needFaucet: "余额不足。请先点击‘领取测试代币’充值。",
+    t_k: "为什么可以信任", t_h: "我们绝不触碰你的资产",
+    t_p: "Diamond Capsule 是非托管协议。你的代币由公开的智能合约保管，而非某家公司。",
+    t1h: "没有管理员后门", t1p: "代码中不存在提取、暂停或升级权限。连开发者也无法打开你的胶囊。",
+    t2h: "即使服务消失", t2p: "即使本站点消失，合约仍留在链上。你可以直接从区块浏览器取回。",
+    t3h: "全部可验证", t3p: "所有规则和余额都在链上公开。源代码也可在区块浏览器验证。",
+    c_lbl: "胶囊合约 (测试网)", c_link: "在区块浏览器查看 →",
+    foot: "Robinhood Chain 上的时间胶囊股票 NFT",
+    disclaimer: "这是演示。代币化股票在法律地位上与真实股票不同(投票权、所有权受限)，投资有本金损失风险。",
+    faq_k: "详解", faq_h: "逐条讲解工作原理",
+    faq: [
+      { q: "锁定期间还能获得分红吗？", a: "可以。Robinhood 股票代币通过代币价值(multiplier)体现分红，因此即使代币锁在胶囊里，分红也会自动累积。代币数量不变，但到期取出时每个代币更值钱。无需合约做任何事，就以复利方式增长。" },
+      { q: "提前打破的罚金去哪了？", a: "每当有人提前打破，其罚金会在那一刻立即分配给当时正在锁定的持有者（不是事后一次性发放，而是每次事件即时发生）。每人的份额与‘锁定金额 × 锁定时长’成正比，锁得越久、越多就分得越多。已到期离场或之后才加入的人不会分到那份，从而保证公平。" },
+      { q: "手续费怎么算？", a: "创建时收取 0.05%（低于 0.1%）的小额费用，取回免费。10% 的提前打破罚金中，只有 0.5% 作为运营费，其余 99.5% 全部归坚持到底的持有者。也就是说大部分罚金属于社区（持有者），而非开发者。" },
+      { q: "可以锁定不同种类的股票代币吗？", a: "可以。胶囊不绑定于某一种代币。每种代币有各自独立的奖励池，因此 TSLA 的罚金归 TSLA 持有者，AMZN 的罚金归 AMZN 持有者。" },
+    ],
+  },
 };
 
 const short = (a) => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
@@ -158,7 +207,7 @@ export default function App() {
           </div>
           <div className="nav-right">
             <button className="theme-btn" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "☀️" : "🌙"}</button>
-            <button className="lang" onClick={() => setLang(lang === "ko" ? "en" : "ko")}>{lang === "ko" ? "EN" : "한국어"}</button>
+            <button className="lang" onClick={() => setLang(lang === "ko" ? "en" : lang === "en" ? "zh" : "ko")}>{lang === "ko" ? "한국어" : lang === "en" ? "EN" : "中文"}</button>
             {!isConnected ? (
               <button className="btn-primary" onClick={() => connect({ connector: connectors[0] })}>{t.connect}</button>
             ) : wrongNet ? (
