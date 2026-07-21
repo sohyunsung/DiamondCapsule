@@ -1,6 +1,6 @@
 // 배포된 컨트랙트 주소 (Robinhood Chain Testnet, chainId 46630)
 // v2: 수수료 + 보상 풀
-export const CAPSULE = "0x1b55A670c4B8E76ABc9dcD4000d7d1557948Bc12";
+export const CAPSULE = "0x02Da4A4EF34B189698cD92b4515350Fb884859E3";
 export const EXPLORER = "https://explorer.testnet.chain.robinhood.com";
 
 // 캡슐에 넣을 수 있는 (모의) 주식 토큰들

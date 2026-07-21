@@ -4,6 +4,22 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {DiamondCapsule} from "../src/DiamondCapsule.sol";
 import {MockStockToken} from "../src/MockStockToken.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+// 전송 시 1% 수수료를 태우는 토큰 (balance-diff 회계 검증용)
+contract FeeToken is ERC20 {
+    constructor() ERC20("Fee", "FEE") {}
+    function faucet(uint256 a) external { _mint(msg.sender, a); }
+    function _update(address from, address to, uint256 value) internal override {
+        if (from != address(0) && to != address(0)) {
+            uint256 fee = value / 100;
+            super._update(from, address(0), fee);      // 1% 소각
+            super._update(from, to, value - fee);
+        } else {
+            super._update(from, to, value);
+        }
+    }
+}
 
 contract DiamondCapsuleTest is Test {
     DiamondCapsule cap;
@@ -150,6 +166,43 @@ contract DiamondCapsuleTest is Test {
         vm.prank(alice);
         vm.expectRevert(bytes("noBreak fee"));
         cap.mint(address(stock), AMOUNT, unlock, "", true);
+    }
+
+    // 전송세 토큰: 실제 수령액만 원금으로 인정 (drain 방지)
+    function test_FeeOnTransferAccounting() public {
+        FeeToken ft = new FeeToken();
+        vm.startPrank(alice);
+        ft.faucet(AMOUNT);
+        ft.approve(address(cap), type(uint256).max);
+        vm.stopPrank();
+
+        uint64 unlock = uint64(block.timestamp + 30 days);
+        vm.prank(alice);
+        uint256 id = cap.mint(address(ft), AMOUNT, unlock, "", false);
+
+        uint256 expected = AMOUNT - AMOUNT / 100; // 1% 전송세 제외 실수령
+        assertEq(_principalOf(id), expected, "principal = actually received");
+        assertEq(ft.balanceOf(address(cap)), expected, "contract holds received");
+
+        vm.warp(unlock + 1);
+        vm.prank(alice);
+        cap.redeem(id);
+        assertEq(ft.balanceOf(address(cap)), 0, "contract fully emptied, no drain");
+    }
+
+    // 화이트리스트: 켜면 허용 토큰만
+    function test_Whitelist() public {
+        cap.setWhitelistEnabled(true); // 이 테스트 컨트랙트가 admin(배포자)
+        uint64 unlock = uint64(block.timestamp + 30 days);
+
+        vm.prank(alice);
+        vm.expectRevert(bytes("token not allowed"));
+        cap.mint(address(stock), AMOUNT, unlock, "", false);
+
+        cap.setTokenAllowed(address(stock), true);
+        vm.prank(alice);
+        uint256 id = cap.mint(address(stock), AMOUNT, unlock, "", false);
+        assertEq(_principalOf(id), AMOUNT, "allowed token works");
     }
 
     function test_CannotRedeemBeforeUnlock() public {

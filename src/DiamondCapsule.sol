@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title DiamondCapsule (v2)
@@ -22,7 +23,7 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
  *  - '절대 해제 불가' 옵션(noBreak): 만기 전 파기를 아예 막는 하드 락.
  *    선택 시 개발자에게 ETH 수수료(noBreakFeeWei, ≈$0.50) 납부.
  */
-contract DiamondCapsule is ERC721 {
+contract DiamondCapsule is ERC721, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     struct Capsule {
@@ -44,8 +45,12 @@ contract DiamondCapsule is ERC721 {
     uint256 private constant ACC = 1e18;
 
     address public immutable feeRecipient;         // 개발자 수수료 수취 주소
-    address public admin;                           // 수수료 파라미터만 조정 가능 (자산엔 접근 불가)
+    address public admin;                           // 수수료/화이트리스트 파라미터만 조정 (자산엔 접근 불가)
     uint256 public noBreakFeeWei = 0.0002 ether;    // '절대 해제 불가' 옵션 수수료 (≈ $0.50, 조정 가능)
+
+    // 토큰 화이트리스트 (기본 꺼짐: 테스트넷 자유. 메인넷은 켜서 검증된 토큰만 허용)
+    bool public whitelistEnabled;
+    mapping(address => bool) public allowedToken;
 
     modifier onlyAdmin() { require(msg.sender == admin, "not admin"); _; }
 
@@ -68,14 +73,26 @@ contract DiamondCapsule is ERC721 {
         noBreakFeeWei = weiAmount;
     }
 
+    // 화이트리스트 on/off (메인넷은 켜서 검증된 토큰만)
+    function setWhitelistEnabled(bool on) external onlyAdmin {
+        whitelistEnabled = on;
+    }
+
+    // 허용 토큰 등록/해제
+    function setTokenAllowed(address token, bool ok) external onlyAdmin {
+        allowedToken[token] = ok;
+    }
+
     // --- 1) 캡슐 만들기 ---
     function mint(address token, uint256 amount, uint64 unlockTime, string calldata message, bool noBreak)
         external
         payable
+        nonReentrant
         returns (uint256 id)
     {
         require(amount > 0, "amount=0");
         require(unlockTime > block.timestamp, "unlock must be future");
+        require(!whitelistEnabled || allowedToken[token], "token not allowed");
 
         // '절대 해제 불가' 옵션 선택 시 ETH 수수료(≈$0.50)를 개발자에게 납부
         if (noBreak) {
@@ -86,10 +103,11 @@ contract DiamondCapsule is ERC721 {
             require(msg.value == 0, "no fee needed");
         }
 
+        // 전송세 토큰 안전: 실제 수령한 만큼만 원금으로 인정 (balance diff)
+        uint256 balBefore = IERC20(token).balanceOf(address(this));
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-
-        // 생성 수수료 없음: 예치액 전부가 원금
-        uint256 principal = amount;
+        uint256 principal = IERC20(token).balanceOf(address(this)) - balBefore;
+        require(principal > 0, "no tokens received");
 
         // 보상 풀 편입
         totalStaked[token] += principal;
@@ -112,7 +130,7 @@ contract DiamondCapsule is ERC721 {
     }
 
     // --- 2) 만기 개봉: 원금 + 보상 회수 (회수 수수료 없음) ---
-    function redeem(uint256 id) external {
+    function redeem(uint256 id) external nonReentrant {
         require(ownerOf(id) == msg.sender, "not owner");
         Capsule storage c = capsules[id];
         require(c.status == 0, "not locked");
@@ -131,7 +149,7 @@ contract DiamondCapsule is ERC721 {
     }
 
     // --- 3) 조기 파기: 페널티 10% (개발자 0.5% + 나머지 홀더 풀) ---
-    function breakEarly(uint256 id) external {
+    function breakEarly(uint256 id) external nonReentrant {
         require(ownerOf(id) == msg.sender, "not owner");
         Capsule storage c = capsules[id];
         require(c.status == 0, "not locked");
