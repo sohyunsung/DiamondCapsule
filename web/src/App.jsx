@@ -240,10 +240,13 @@ export default function App() {
       <Stats t={t} />
 
       <section id="how"><div className="wrap">
-        <div className="sec-head">
-          <div className="kicker">{t.how_k}</div><h2>{t.how_h}</h2><p>{t.how_p}</p>
+        <div className="how-top">
+          <div className="sec-head" style={{ marginBottom: 0 }}>
+            <div className="kicker">{t.how_k}</div><h2>{t.how_h}</h2><p>{t.how_p}</p>
+          </div>
+          <img className="section-art" src={asset("hero.png")} alt="" aria-hidden="true" />
         </div>
-        <div className="steps">
+        <div className="steps" style={{ marginTop: 40 }}>
           <div className="step"><div className="n">01</div><div className="icon">🔒</div><h3>{t.s1h}</h3><p>{t.s1p}</p></div>
           <div className="step"><div className="n">02</div><div className="icon">🌱</div><h3>{t.s2h}</h3><p>{t.s2p}</p></div>
           <div className="step"><div className="n">03</div><div className="icon">🌸</div><h3>{t.s3h}</h3><p>{t.s3p}</p></div>
@@ -365,9 +368,7 @@ function Hero({ t }) {
           <span className="chip">🕐 {t.chip3}</span>
         </div>
       </div>
-      <div className="hero-art">
-        <img src={asset("hero.png")} alt="Diamond hands gripping a gem, breaking free of chains" />
-      </div>
+      <HeroCard t={t} />
     </div></header>
   );
 }

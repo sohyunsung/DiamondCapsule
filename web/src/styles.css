@@ -64,6 +64,17 @@ nav {
   border-radius: 24px; border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
+
+/* Section artwork (faded, beside explanation) */
+.how-top { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; }
+.section-art {
+  width: 240px; max-width: 36%; height: auto; display: block;
+  border-radius: 20px; opacity: 0.45; mix-blend-mode: multiply;
+}
+@media (prefers-color-scheme: dark) { .section-art { mix-blend-mode: screen; opacity: 0.4; } }
+:root[data-theme="dark"] .section-art { mix-blend-mode: screen; opacity: 0.4; }
+:root[data-theme="light"] .section-art { mix-blend-mode: multiply; opacity: 0.45; }
+@media (max-width: 860px) { .how-top { grid-template-columns: 1fr; } .section-art { display: none; } }
 .nav-links { display: flex; gap: 26px; margin-left: 12px; }
 .nav-links a { text-decoration: none; color: var(--muted); font-size: 14.5px; font-weight: 520; }
 .nav-links a:hover { color: var(--ink); }
