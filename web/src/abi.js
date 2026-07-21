@@ -7,7 +7,8 @@ export const capsuleAbi = parseAbi([
   "function redeem(uint256 id)",
   "function nextId() view returns (uint256)",
   "function ownerOf(uint256 id) view returns (address)",
-  "function capsules(uint256 id) view returns (address token, uint256 amount, uint64 createdAt, uint64 unlockTime, string message, uint8 status)",
+  "function capsules(uint256 id) view returns (address token, uint256 principal, uint64 createdAt, uint64 unlockTime, string message, uint8 status, uint256 rewardDebt)",
+  "function pendingReward(uint256 id) view returns (uint256)",
 ]);
 
 // MockStockToken (ERC20)

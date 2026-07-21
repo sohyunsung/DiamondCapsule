@@ -30,6 +30,7 @@ const T = {
     amount: "잠글 금액", dur: "락 기간", msg: "미래의 나에게 (선택)", msgPh: "존버하자!",
     lock: "캡슐 잠그기", day: "일",
     sum_title: "요약", sum_lock: "잠글 금액", sum_unlock: "개화일", sum_penalty: "조기파기 페널티", sum_share: "보상 지분",
+    sum_mintfee: "생성 수수료", sum_redeemfee: "회수 수수료", free: "무료", cap_reward: "보상 쌓임",
     w_title: "보상 지분 가중치", w_note_a: "같은 금액이라도 ", w_note_b: "오래 잠글수록", w_note_c: " 페널티 풀에서 받는 몫이 커집니다. 지분 = 금액 × 잠근 기간.",
     warn_a: "만기 전에 깨면 ", warn_b: "10%", warn_c: "를 잃고, 그 페널티는 끝까지 버틴 다른 캡슐 보유자들에게 분배됩니다.",
     myCaps: "내 캡슐", empty: "아직 캡슐이 없어요. 위에서 하나 만들어보세요.",
@@ -52,6 +53,7 @@ const T = {
     faq: [
       { q: "잠근 동안에도 배당을 받나요?", a: "네. Robinhood Stock Token은 배당이 토큰 가치(multiplier)로 반영되는 방식이라, 캡슐에 잠겨 있어도 배당은 자동으로 쌓입니다. 토큰 개수는 그대로지만 만기에 꺼낼 때 더 가치 있는 토큰이 됩니다. 컨트랙트가 따로 하는 일 없이 복리로 굴러갑니다." },
       { q: "조기파기 페널티는 어디로 가나요?", a: "만기까지 버틴 다른 캡슐 보유자들에게 분배됩니다. 각자의 몫(지분)은 ‘잠근 금액 × 잠근 기간’에 비례합니다. 오래·많이 잠글수록 페널티 풀에서 더 많이 받습니다. 페널티가 들어오는 순간의 참여자끼리 나누는 방식으로 공평하게 누적됩니다." },
+      { q: "수수료는 어떻게 되나요?", a: "생성 시 0.05%(0.1% 미만)의 소액 수수료만 있고, 회수는 무료입니다. 조기파기 페널티(10%) 중에서는 0.5%만 운영 수수료로 쓰이고, 나머지 99.5%는 전부 끝까지 버틴 홀더들에게 돌아갑니다. 즉 대부분의 페널티는 개발자가 아니라 커뮤니티(버틴 사람들)의 몫입니다." },
       { q: "여러 종류의 주식 토큰을 잠글 수 있나요?", a: "네. 캡슐은 특정 토큰에 묶여 있지 않습니다. 토큰마다 별도의 보상 풀이 관리되어, TSLA 페널티는 TSLA 홀더에게, AMZN 페널티는 AMZN 홀더에게 갑니다." },
       { q: "자산은 누가 보관하나요? 서비스가 사라지면요?", a: "회사가 아니라 스마트 컨트랙트가 보관합니다(비수탁). 인출·정지·업그레이드 권한이 코드에 없어 개발자도 손댈 수 없습니다. 이 사이트가 사라져도 컨트랙트는 체인에 남아, 익스플로러에서 직접 회수할 수 있습니다." },
     ],
@@ -77,6 +79,7 @@ const T = {
     amount: "Amount to lock", dur: "Lock period", msg: "To your future self (optional)", msgPh: "Hold the line!",
     lock: "Lock capsule", day: "d",
     sum_title: "Summary", sum_lock: "Amount", sum_unlock: "Bloom date", sum_penalty: "Early-break penalty", sum_share: "Reward share",
+    sum_mintfee: "Creation fee", sum_redeemfee: "Redeem fee", free: "Free", cap_reward: "reward accrued",
     w_title: "Reward weight", w_note_a: "Same amount — the ", w_note_b: "longer you lock", w_note_c: ", the bigger your slice of the penalty pool. Share = amount × lock time.",
     warn_a: "Break before maturity and you lose ", warn_b: "10%", warn_c: ", redistributed to holders who stay.",
     myCaps: "My capsules", empty: "No capsules yet. Create one above.",
@@ -99,6 +102,7 @@ const T = {
     faq: [
       { q: "Do I still earn dividends while locked?", a: "Yes. Robinhood Stock Tokens reflect dividends in the token's value (a multiplier), so dividends accrue automatically even while your tokens are locked in a capsule. Your token count stays the same, but each token is worth more at maturity. It compounds without the contract doing anything." },
       { q: "Where does the early-break penalty go?", a: "It's distributed to other capsule holders who stay to maturity. Each holder's share is proportional to ‘amount locked × time locked’. The longer and larger you lock, the bigger your slice of the penalty pool. It accrues fairly — split among whoever is locked at the moment each penalty arrives." },
+      { q: "What are the fees?", a: "A tiny 0.05% fee on creation (under 0.1%), and redemption is free. Of the 10% early-break penalty, only 0.5% is an operating fee — the other 99.5% goes entirely to holders who stay. So most of the penalty belongs to the community (the holders), not the developer." },
       { q: "Can I lock different kinds of stock tokens?", a: "Yes. A capsule isn't tied to one token. Each token has its own reward pool, so TSLA penalties go to TSLA holders and AMZN penalties go to AMZN holders." },
       { q: "Who custodies the assets? What if the service disappears?", a: "A smart contract holds them, not a company (non-custodial). No withdraw, pause, or upgrade powers exist in the code — not even the developer can touch them. If this site vanishes, the contract stays on-chain and you can redeem directly from the explorer." },
     ],
@@ -413,6 +417,8 @@ function Builder({ t, lang, address }) {
             <h4>{t.sum_title}</h4>
             <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} mTSLA</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_unlock}</span><span className="val">+{days}{t.day}</span></div>
+            <div className="sum-row"><span className="lbl">{t.sum_mintfee}</span><span className="val">0.05%</span></div>
+            <div className="sum-row"><span className="lbl">{t.sum_redeemfee}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{t.free}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_penalty}</span><span className="val" style={{ color: "var(--amber)" }}>10%</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_share}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{amt.toLocaleString()} × {days}{t.day}</span></div>
           </div>
@@ -479,6 +485,7 @@ function fmtCountdown(secs, dayLabel) {
 function CapsuleCard({ id, address, now, t, busy, run }) {
   const owner = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "ownerOf", args: [BigInt(id)] });
   const cap = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "capsules", args: [BigInt(id)], query: { refetchInterval: 5000 } });
+  const reward = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "pendingReward", args: [BigInt(id)], query: { refetchInterval: 5000 } });
 
   const isMine = owner.data && address && owner.data.toLowerCase() === address.toLowerCase();
   if (!isMine || !cap.data) return null;
@@ -494,6 +501,7 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
   const bloomed = remaining <= 0;
   const st = stageOf(cstatus, createdAt, unlockTime, now, t);
   const pill = cstatus === 1 ? ["redeemed", t.redeemed] : cstatus === 2 ? ["broken", t.broken] : ["locked", t.locked];
+  const rewardAmt = reward.data ? Number(formatUnits(reward.data, 18)) : 0;
 
   async function doBreak() {
     if (!window.confirm(t.breakWarn)) return;
@@ -512,6 +520,9 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
         <div className="ctop">
           <span className="amt">{amt.toLocaleString()} mTSLA</span>
           <span className={"pill " + pill[0]}>{pill[1]}</span>
+          {cstatus === 0 && rewardAmt > 0 && (
+            <span className="pill locked">＋{rewardAmt.toLocaleString(undefined, { maximumFractionDigits: 4 })} {t.cap_reward}</span>
+          )}
           <span className="mono" style={{ color: "var(--muted)", fontSize: 13 }}>#{id}</span>
         </div>
         <div className="cmeta">
