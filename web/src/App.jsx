@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract, useReadContracts } from "wagmi";
 import { readContract, writeContract, waitForTransactionReceipt } from "wagmi/actions";
-import { parseUnits, formatUnits, maxUint256, isAddress } from "viem";
+import { parseUnits, formatUnits, maxUint256, isAddress, parseEther } from "viem";
 import { config, robinhoodTestnet } from "./wagmi";
 import { capsuleAbi, erc20Abi } from "./abi";
 import { CAPSULE, STOCK, EXPLORER, TOKENS, symbolOf } from "./contracts";
@@ -29,6 +29,7 @@ const T = {
     balance: "내 잔액", faucet: "테스트 토큰 1,000개 받기",
     asset: "자산 선택", amount: "잠글 금액", dur: "락 기간", msg: "미래의 나에게 (선택)", msgPh: "존버하자!",
     custom: "직접 입력", customPh: "토큰 컨트랙트 주소 0x…", customHold: "내 지갑에 있는 토큰 주소를 붙여넣으면 그 토큰을 그대로 잠급니다.", badAddr: "올바른 주소가 아닙니다 (0x… 42자).", needToken: "먼저 자산(토큰)을 선택하거나 주소를 입력하세요.",
+    nb_label: "절대 해제 불가 (하드 락)", nb_desc: "한 번 잠그면 만기까지 절대 못 깹니다 — 진짜 다이아 핸드. 선택 시 $0.50 상당의 ETH 수수료(시세 따라 변동).", nb_fee: "수수료", nb_badge: "해제불가", nb_priceErr: "시세 조회 실패 — 최소 수수료 적용",
     lock: "캡슐 잠그기", day: "일",
     sum_title: "요약", sum_lock: "잠글 금액", sum_unlock: "개화일", sum_penalty: "조기파기 페널티", sum_share: "보상 지분",
     sum_mintfee: "생성 수수료", sum_redeemfee: "회수 수수료", free: "무료", cap_reward: "보상 쌓임",
@@ -56,6 +57,7 @@ const T = {
       { q: "잠근 동안에도 배당을 받나요?", a: "네. Robinhood Stock Token은 배당이 토큰 가치(multiplier)로 반영되는 방식이라, 캡슐에 잠겨 있어도 배당은 자동으로 쌓입니다. 토큰 개수는 그대로지만 만기에 꺼낼 때 더 가치 있는 토큰이 됩니다. 컨트랙트가 따로 하는 일 없이 복리로 굴러갑니다." },
       { q: "조기파기 페널티는 어디로 가나요?", a: "누군가 조기파기할 때마다, 그 페널티는 바로 그 순간 잠겨 있는 홀더들에게 즉시 분배되어 쌓입니다(한 번에 몰아주는 게 아니라 사건마다 그때그때). 각자의 몫은 ‘잠근 금액 × 잠근 기간’에 비례해서, 오래·많이 잠글수록 더 받습니다. 이미 만기로 빠져나간 사람이나 나중에 들어온 사람은 그 몫을 받지 않아 공평합니다." },
       { q: "수수료는 어떻게 되나요?", a: "생성과 회수 모두 무료입니다. 유일한 수수료는 조기파기 페널티(10%) 중 0.5%뿐이고, 나머지 99.5%는 전부 끝까지 버틴 홀더들에게 돌아갑니다. 즉 대부분의 페널티는 개발자가 아니라 커뮤니티(버틴 사람들)의 몫입니다." },
+      { q: "'절대 해제 불가' 옵션은 뭔가요?", a: "캡슐 생성 시 켤 수 있는 하드 락입니다. 켜면 만기 전에는 어떤 방법으로도(페널티를 물더라도) 깰 수 없습니다 — 진짜 다이아 핸드 모드. 대신 $0.50 상당의 ETH를 개발자 수수료로 납부하며, 그 ETH 금액은 시세에 따라 자동으로 조정됩니다. 만기가 되면 정상적으로 회수할 수 있습니다." },
       { q: "여러 종류의 주식 토큰을 잠글 수 있나요?", a: "네. 캡슐은 특정 토큰에 묶여 있지 않습니다. 토큰마다 별도의 보상 풀이 관리되어, TSLA 페널티는 TSLA 홀더에게, AMZN 페널티는 AMZN 홀더에게 갑니다." },
       { q: "자산은 누가 보관하나요? 서비스가 사라지면요?", a: "회사가 아니라 스마트 컨트랙트가 보관합니다(비수탁). 인출·정지·업그레이드 권한이 코드에 없어 개발자도 손댈 수 없습니다. 이 사이트가 사라져도 컨트랙트는 체인에 남아, 익스플로러에서 직접 회수할 수 있습니다." },
     ],
@@ -80,6 +82,7 @@ const T = {
     balance: "Your balance", faucet: "Get 1,000 test tokens",
     asset: "Choose asset", amount: "Amount to lock", dur: "Lock period", msg: "To your future self (optional)", msgPh: "Hold the line!",
     custom: "Custom", customPh: "Token contract address 0x…", customHold: "Paste a token address from your wallet to lock that token as-is.", badAddr: "Not a valid address (0x…, 42 chars).", needToken: "Pick an asset or enter a token address first.",
+    nb_label: "No early exit (hard lock)", nb_desc: "Once locked, it can never be broken before maturity — true diamond hands. Costs an ETH fee worth $0.50 (varies with price).", nb_fee: "Fee", nb_badge: "No-break", nb_priceErr: "Price lookup failed — minimum fee applied",
     lock: "Lock capsule", day: "d",
     sum_title: "Summary", sum_lock: "Amount", sum_unlock: "Bloom date", sum_penalty: "Early-break penalty", sum_share: "Reward share",
     sum_mintfee: "Creation fee", sum_redeemfee: "Redeem fee", free: "Free", cap_reward: "reward accrued",
@@ -107,6 +110,7 @@ const T = {
       { q: "Do I still earn dividends while locked?", a: "Yes. Robinhood Stock Tokens reflect dividends in the token's value (a multiplier), so dividends accrue automatically even while your tokens are locked in a capsule. Your token count stays the same, but each token is worth more at maturity. It compounds without the contract doing anything." },
       { q: "Where does the early-break penalty go?", a: "Every time someone breaks early, their penalty is distributed instantly to whoever is locked at that exact moment — not in one lump later, but per event as it happens. Each holder's share is proportional to ‘amount locked × time locked’, so the longer and larger you lock, the more you get. People who already redeemed and left, or who join later, don't get that slice — which keeps it fair." },
       { q: "What are the fees?", a: "Creating and redeeming are both free. The only fee is 0.5% of the 10% early-break penalty — the other 99.5% goes entirely to holders who stay. So most of the penalty belongs to the community (the holders), not the developer." },
+      { q: "What is the 'no early exit' option?", a: "A hard lock you can turn on when creating a capsule. With it on, the capsule can't be broken before maturity by any means (not even by paying the penalty) — true diamond-hands mode. It costs an ETH fee worth $0.50, and the ETH amount adjusts automatically with the price. At maturity you redeem as usual." },
       { q: "Can I lock different kinds of stock tokens?", a: "Yes. A capsule isn't tied to one token. Each token has its own reward pool, so TSLA penalties go to TSLA holders and AMZN penalties go to AMZN holders." },
       { q: "Who custodies the assets? What if the service disappears?", a: "A smart contract holds them, not a company (non-custodial). No withdraw, pause, or upgrade powers exist in the code — not even the developer can touch them. If this site vanishes, the contract stays on-chain and you can redeem directly from the explorer." },
     ],
@@ -131,6 +135,7 @@ const T = {
     balance: "我的余额", faucet: "领取 1,000 个测试代币",
     asset: "选择资产", amount: "锁定金额", dur: "锁定期限", msg: "给未来的自己 (可选)", msgPh: "拿住别卖！",
     custom: "自定义", customPh: "代币合约地址 0x…", customHold: "粘贴你钱包里的代币地址，即可锁定该代币。", badAddr: "不是有效地址 (0x…，42 位)。", needToken: "请先选择资产或输入代币地址。",
+    nb_label: "永不提前解锁 (硬锁)", nb_desc: "一旦锁定，到期前绝不可打破——真正的钻石手。选择需支付价值 $0.50 的 ETH 手续费（随价格浮动）。", nb_fee: "手续费", nb_badge: "永久锁定", nb_priceErr: "价格获取失败——采用最低手续费",
     lock: "锁定胶囊", day: "天",
     sum_title: "摘要", sum_lock: "锁定金额", sum_unlock: "开花日", sum_penalty: "提前打破罚金", sum_share: "奖励份额",
     sum_mintfee: "创建费", sum_redeemfee: "取回费", free: "免费", cap_reward: "奖励累积",
@@ -158,6 +163,7 @@ const T = {
       { q: "锁定期间还能获得分红吗？", a: "可以。Robinhood 股票代币通过代币价值(multiplier)体现分红，因此即使代币锁在胶囊里，分红也会自动累积。代币数量不变，但到期取出时每个代币更值钱。无需合约做任何事，就以复利方式增长。" },
       { q: "提前打破的罚金去哪了？", a: "每当有人提前打破，其罚金会在那一刻立即分配给当时正在锁定的持有者（不是事后一次性发放，而是每次事件即时发生）。每人的份额与‘锁定金额 × 锁定时长’成正比，锁得越久、越多就分得越多。已到期离场或之后才加入的人不会分到那份，从而保证公平。" },
       { q: "手续费怎么算？", a: "创建和取回都免费。唯一的费用是 10% 提前打破罚金中的 0.5%，其余 99.5% 全部归坚持到底的持有者。也就是说大部分罚金属于社区（持有者），而非开发者。" },
+      { q: "‘永不提前解锁’选项是什么？", a: "创建胶囊时可开启的硬锁。开启后，到期前无论如何都无法打破（即使支付罚金也不行）——真正的钻石手模式。需支付价值 $0.50 的 ETH 手续费，该 ETH 数量会随价格自动调整。到期后可正常取回。" },
       { q: "可以锁定不同种类的股票代币吗？", a: "可以。胶囊不绑定于某一种代币。每种代币有各自独立的奖励池，因此 TSLA 的罚金归 TSLA 持有者，AMZN 的罚金归 AMZN 持有者。" },
     ],
   },
@@ -450,7 +456,32 @@ function Builder({ t, lang, address }) {
   const [amount, setAmount] = useState("100");
   const [days, setDays] = useState(90);
   const [message, setMessage] = useState("");
+  const [noBreak, setNoBreak] = useState(false);
+  const [ethPrice, setEthPrice] = useState(null);
   const { busy, status, err, run, setStatus, setErr } = useTxRunner(t);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+      .then((r) => r.json())
+      .then((d) => { if (alive && d?.ethereum?.usd) setEthPrice(d.ethereum.usd); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // '절대 해제 불가' 옵션 수수료 = $0.50 상당 ETH (시세 동적), 최소 floor 이상
+  const floorRead = useReadContract({ address: CAPSULE, abi: capsuleAbi, functionName: "noBreakFeeWei" });
+  const floor = floorRead.data ?? 0n;
+  let feeWei = 0n;
+  if (noBreak) {
+    if (ethPrice) {
+      const dyn = parseEther((0.5 / ethPrice).toFixed(18));
+      feeWei = dyn > floor ? dyn : floor;
+    } else {
+      feeWei = floor;
+    }
+  }
+  const feeEthStr = feeWei > 0n ? Number(formatUnits(feeWei, 18)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : "0";
 
   const isCustom = sel === "custom";
   const activeToken = isCustom ? (isAddress(customAddr) ? customAddr : null) : sel;
@@ -487,7 +518,7 @@ function Builder({ t, lang, address }) {
       }
       setStatus(t.minting);
       const unlock = BigInt(Math.floor(Date.now() / 1000) + days * 86400);
-      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [activeToken, amtWei, unlock, message || ""] });
+      await sendTx({ address: CAPSULE, abi: capsuleAbi, functionName: "mint", args: [activeToken, amtWei, unlock, message || "", noBreak], value: feeWei });
     });
     balance.refetch();
   }
@@ -545,6 +576,19 @@ function Builder({ t, lang, address }) {
           <div className="field">
             <label>{t.msg}</label>
             <div className="amount-in text"><input value={message} placeholder={t.msgPh} onChange={(e) => setMessage(e.target.value)} /></div>
+          </div>
+          <div className={"nobreak" + (noBreak ? " on" : "")}>
+            <label className="nb-head">
+              <input type="checkbox" checked={noBreak} onChange={(e) => setNoBreak(e.target.checked)} />
+              <span>🔒 {t.nb_label}</span>
+            </label>
+            <p className="nb-desc">{t.nb_desc}</p>
+            {noBreak && (
+              <div className="nb-fee">
+                {t.nb_fee}: ≈ $0.50 {feeWei > 0n ? `(${feeEthStr} ETH)` : ""}
+                {!ethPrice && <span className="nb-warn"> · {t.nb_priceErr}</span>}
+              </div>
+            )}
           </div>
           <button className="btn-primary" disabled={busy || !(amt > 0) || !activeToken} onClick={createCapsule}>{t.lock}</button>
           {status && <div className={"status-line" + (err ? " err" : "")}>{status}</div>}
@@ -632,6 +676,7 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
   const get = (i, name) => (Array.isArray(d) ? d[i] : d[name]);
   const tokenAddr = get(0, "token"), amtRaw = get(1, "principal"), createdAt = get(2, "createdAt"), unlockTime = get(3, "unlockTime");
   const message = get(4, "message"), cstatus = Number(get(5, "status"));
+  const noBreak = Boolean(get(7, "noBreak"));
   const sym = symbolOf(tokenAddr);
 
   const amt = Number(formatUnits(amtRaw, 18));
@@ -662,6 +707,7 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
           {cstatus === 0 && rewardAmt > 0 && (
             <span className="pill locked">＋{rewardAmt.toLocaleString(undefined, { maximumFractionDigits: 4 })} {t.cap_reward}</span>
           )}
+          {noBreak && <span className="pill hard">🔒 {t.nb_badge}</span>}
           <span className="mono" style={{ color: "var(--muted)", fontSize: 13 }}>#{id}</span>
         </div>
         <div className="cmeta">
@@ -673,7 +719,9 @@ function CapsuleCard({ id, address, now, t, busy, run }) {
         <div>
           {bloomed
             ? <button className="btn-primary sm" disabled={busy} onClick={doRedeem}>{t.redeem}</button>
-            : <button className="btn-amber" disabled={busy} onClick={doBreak}>{t.breakE}</button>}
+            : noBreak
+              ? <span className="pill hard">🔒 {t.nb_badge}</span>
+              : <button className="btn-amber" disabled={busy} onClick={doBreak}>{t.breakE}</button>}
         </div>
       )}
     </div>

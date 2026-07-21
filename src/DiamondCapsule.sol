@@ -15,22 +15,25 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
  *    "끝까지 버틴" 다른 홀더들에게 분배된다. 오래·많이 잠글수록 더 받는다.
  *  - 캡슐 하나가 NFT 하나이고, 시간이 지날수록 그림이 자란다.
  *
- * 수수료 (모두 상수, 필요시 조정):
+ * 수수료:
  *  - 생성 수수료 없음 (무료)
  *  - 회수 수수료 없음 (무료)
  *  - 페널티 중 0.5%만 개발자 수익 (DEV_PENALTY_BPS), 나머지는 홀더 보상 풀로
+ *  - '절대 해제 불가' 옵션(noBreak): 만기 전 파기를 아예 막는 하드 락.
+ *    선택 시 개발자에게 ETH 수수료(noBreakFeeWei, ≈$0.50) 납부.
  */
 contract DiamondCapsule is ERC721 {
     using SafeERC20 for IERC20;
 
     struct Capsule {
         address token;      // 잠근 주식 토큰
-        uint256 principal;  // 잠긴 원금 (생성 수수료 제외 후)
+        uint256 principal;  // 잠긴 원금
         uint64  createdAt;
         uint64  unlockTime;
         string  message;    // 미래의 나에게
         uint8   status;     // 0 Locked, 1 Redeemed, 2 Broken
         uint256 rewardDebt; // 보상 회계용 (내부)
+        bool    noBreak;    // true면 만기 전 조기파기 불가 (하드 락)
     }
 
     uint256 public nextId;
@@ -41,6 +44,10 @@ contract DiamondCapsule is ERC721 {
     uint256 private constant ACC = 1e18;
 
     address public immutable feeRecipient;         // 개발자 수수료 수취 주소
+    address public admin;                           // 수수료 파라미터만 조정 가능 (자산엔 접근 불가)
+    uint256 public noBreakFeeWei = 0.0002 ether;    // '절대 해제 불가' 옵션 수수료 (≈ $0.50, 조정 가능)
+
+    modifier onlyAdmin() { require(msg.sender == admin, "not admin"); _; }
 
     // 토큰별 보상 풀 회계 (표준 accRewardPerShare 방식)
     mapping(address => uint256) public totalStaked;       // 활성 캡슐 원금 합 (토큰별)
@@ -53,15 +60,31 @@ contract DiamondCapsule is ERC721 {
     constructor(address _feeRecipient) ERC721("Diamond Capsule", "DCAP") {
         require(_feeRecipient != address(0), "fee=0");
         feeRecipient = _feeRecipient;
+        admin = msg.sender;
+    }
+
+    // '절대 해제 불가' 옵션 수수료를 ETH 가격에 맞춰 조정 (자산엔 영향 없음)
+    function setNoBreakFee(uint256 weiAmount) external onlyAdmin {
+        noBreakFeeWei = weiAmount;
     }
 
     // --- 1) 캡슐 만들기 ---
-    function mint(address token, uint256 amount, uint64 unlockTime, string calldata message)
+    function mint(address token, uint256 amount, uint64 unlockTime, string calldata message, bool noBreak)
         external
+        payable
         returns (uint256 id)
     {
         require(amount > 0, "amount=0");
         require(unlockTime > block.timestamp, "unlock must be future");
+
+        // '절대 해제 불가' 옵션 선택 시 ETH 수수료(≈$0.50)를 개발자에게 납부
+        if (noBreak) {
+            require(msg.value >= noBreakFeeWei, "noBreak fee");
+            (bool ok, ) = feeRecipient.call{value: msg.value}("");
+            require(ok, "fee transfer failed");
+        } else {
+            require(msg.value == 0, "no fee needed");
+        }
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -75,7 +98,7 @@ contract DiamondCapsule is ERC721 {
         id = nextId++;
         capsules[id] = Capsule({
             token: token, principal: principal, createdAt: uint64(block.timestamp),
-            unlockTime: unlockTime, message: message, status: 0, rewardDebt: debt
+            unlockTime: unlockTime, message: message, status: 0, rewardDebt: debt, noBreak: noBreak
         });
         _safeMint(msg.sender, id);
         emit Locked(id, msg.sender, token, principal, unlockTime);
@@ -112,6 +135,7 @@ contract DiamondCapsule is ERC721 {
         require(ownerOf(id) == msg.sender, "not owner");
         Capsule storage c = capsules[id];
         require(c.status == 0, "not locked");
+        require(!c.noBreak, "no-break capsule");
         require(block.timestamp < c.unlockTime, "already unlocked; use redeem");
 
         address token = c.token;

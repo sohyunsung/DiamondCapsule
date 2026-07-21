@@ -2,13 +2,14 @@ import { parseAbi } from "viem";
 
 // DiamondCapsule 컨트랙트에서 우리가 쓸 함수들 (사람이 읽을 수 있는 형태)
 export const capsuleAbi = parseAbi([
-  "function mint(address token, uint256 amount, uint64 unlockTime, string message) returns (uint256)",
+  "function mint(address token, uint256 amount, uint64 unlockTime, string message, bool noBreak) payable returns (uint256)",
   "function breakEarly(uint256 id)",
   "function redeem(uint256 id)",
   "function nextId() view returns (uint256)",
   "function ownerOf(uint256 id) view returns (address)",
-  "function capsules(uint256 id) view returns (address token, uint256 principal, uint64 createdAt, uint64 unlockTime, string message, uint8 status, uint256 rewardDebt)",
+  "function capsules(uint256 id) view returns (address token, uint256 principal, uint64 createdAt, uint64 unlockTime, string message, uint8 status, uint256 rewardDebt, bool noBreak)",
   "function pendingReward(uint256 id) view returns (uint256)",
+  "function noBreakFeeWei() view returns (uint256)",
 ]);
 
 // MockStockToken (ERC20)

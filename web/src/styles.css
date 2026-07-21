@@ -150,6 +150,14 @@ h2 { font-size: clamp(28px, 3.6vw, 38px); font-weight: 700; margin-top: 12px; }
 .dur.active { border-color: var(--rh); background: var(--rh-soft); }
 .dur.active .s { color: var(--rh-deep); }
 .builder .btn-primary { width: 100%; margin-top: 6px; padding: 15px; font-size: 16px; }
+.nobreak { border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px; margin-bottom: 22px; transition: border-color .15s, background .15s; }
+.nobreak.on { border-color: var(--rh); background: var(--rh-soft); }
+.nb-head { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 640; font-size: 14.5px; }
+.nb-head input { width: 17px; height: 17px; accent-color: var(--rh); cursor: pointer; }
+.nb-desc { font-size: 12.5px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+.nb-fee { margin-top: 10px; font-size: 13.5px; font-weight: 660; color: var(--rh-deep); font-variant-numeric: tabular-nums; }
+.nb-warn { color: var(--amber); font-weight: 500; }
+.pill.hard { background: var(--ink); color: var(--ground); }
 
 .summary { display: flex; flex-direction: column; gap: 14px; }
 .sum-card { background: var(--ground); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
