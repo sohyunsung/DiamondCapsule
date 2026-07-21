@@ -185,7 +185,7 @@ function useTxRunner(t) {
 }
 
 export default function App() {
-  const [lang, setLang] = useState("ko");
+  const [lang, setLang] = useState("en");
   const [theme, setTheme] = useState(null);
   const t = T[lang];
   const { address, isConnected, chainId } = useAccount();
