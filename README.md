@@ -1,52 +1,80 @@
 # 💎 Diamond Capsule
 
-주식 토큰을 미래 시점까지 잠그는 **타임캡슐 NFT** dApp. (Robinhood Chain, EVM)
+A **time-capsule NFT** dApp for tokenized stocks on **Robinhood Chain** (EVM).
 
-**🌐 라이브 데모: https://sohyunsung.github.io/DiamondCapsule/** (Robinhood Chain Testnet)
+**🌐 Live demo: https://sohyunsung.github.io/DiamondCapsule/** (Robinhood Chain Testnet)
 
-> "미래의 나에게 락을 걸고, 중간에 못 깨게 서약하고, 그 여정이 NFT로 살아 움직인다."
+> "A promise to your future self. Lock it, hold it, watch it bloom."
 
-## 컨셉
+## Concept
 
-- ⏳ **타임캡슐** — 주식 토큰을 예치하고 만기까지 잠근다. 그 사이 배당은 multiplier로 알아서 복리.
-- 💎 **다이아 핸드** — 만기 전에 깨면 페널티(10%)를 문다. 버티면 전액 회수.
-- 🌱 **살아있는 NFT** — 캡슐 하나가 NFT 하나. 시간이 지날수록 그림이 자란다 (씨앗 → 새싹 → 나무 → 만개). 서버 없이 온체인에서 SVG 생성.
+- ⏳ **Lock** — Deposit stock tokens into a capsule and set a maturity date. Your tokens become a capsule (NFT) held by the contract. Dividends keep accruing while locked (via the token's multiplier).
+- 💎 **Hold** — Break early and you forfeit a 10% penalty. Every time someone breaks early, their penalty is distributed instantly to the holders who stay — proportional to amount × time locked.
+- 🌸 **Bloom** — At maturity, withdraw your full principal plus accrued rewards. The capsule NFT (an on-chain SVG that grew from seed to bloom) stays as a keepsake.
 
-## 왜 블록체인인가
+## Why blockchain
 
-토큰은 **컨트랙트가** 보관한다. 서비스(웹사이트/회사)가 사라져도 컨트랙트는 체인 위에 그대로 남아 사용자가 직접 `redeem()`을 호출해 회수할 수 있다. 관리자 인출·일시정지·업그레이드 권한이 **없는** 비수탁(non-custodial) 설계.
+Tokens are held by the **contract**, not by a company. If this site disappears, the contract lives on-chain and anyone can redeem directly from a block explorer. There are **no admin withdraw, pause, or upgrade powers** — non-custodial by design.
 
-## 기술 스택
+## Fees
 
-| 영역 | 툴 |
+- Creating a capsule: **free**
+- Redeeming at maturity: **free**
+- Only fee: **0.5% of the early-break penalty** goes to the protocol; the other 99.5% goes to holders who stay.
+- Optional **"no early exit" hard lock**: pay an ETH fee worth ~$0.50 (price-dynamic) to make a capsule unbreakable before maturity.
+
+## Features
+
+- Multi-token: pick a preset stock token or paste any token address from your wallet
+- Per-token reward pools (a token's penalties only reward that token's holders)
+- Growing on-chain SVG NFT (seed → sprout → tree → bloom)
+- Live stats (participants / capsules / currently locked)
+- i18n: English · 한국어 · 中文, with light/dark themes
+
+## Tech stack
+
+| Layer | Tool |
 |---|---|
-| 언어 | Solidity |
-| 프레임워크 | Foundry |
-| 라이브러리 | OpenZeppelin (ERC-721) |
-| 프론트엔드(예정) | Next.js + wagmi + viem + RainbowKit |
+| Language | Solidity |
+| Framework | Foundry |
+| Libraries | OpenZeppelin (ERC-721, ReentrancyGuard) |
+| Frontend | Vite + React + wagmi + viem |
+| Hosting | GitHub Pages (static) |
 
-## 구조
+## Security notes
+
+- `ReentrancyGuard` on all state-changing calls
+- Balance-diff accounting on deposit (safe against fee-on-transfer tokens)
+- Optional token whitelist (off by default on testnet; enable on mainnet for vetted tokens only)
+
+## Structure
 
 ```
 src/
-├── DiamondCapsule.sol   # 메인: 락 + 페널티 + 성장 NFT
-└── MockStockToken.sol   # 테스트용 가짜 주식 토큰
-test/
-└── DiamondCapsule.t.sol # 테스트
+├── DiamondCapsule.sol   # lock / redeem / break / reward pool / growing NFT
+└── MockStockToken.sol   # test stock token with faucet
+test/DiamondCapsule.t.sol # 10 tests
+web/                      # frontend (Vite + React)
 ```
 
-## 개발
+## Develop
 
 ```bash
-forge build        # 컴파일
-forge test -vv     # 테스트
+forge build && forge test      # contracts
+cd web && npm install && npm run dev   # frontend
 ```
 
-## 상태
+## Status
 
-- [x] 컨트랙트 로직 (락 / 개봉 / 조기파기 / 성장 NFT)
-- [x] 테스트 (4/4 통과)
-- [x] 테스트넷 배포 ([DEPLOYMENTS.md](./DEPLOYMENTS.md))
-- [ ] 프론트엔드
-- [ ] 보상 풀 v2 (조기파기 페널티 → 다이아 핸드에게 재분배 + 개발자 수수료)
-- [ ] 가격 오라클 연동 (손익 기반 NFT 색 변화)
+- [x] Contract logic (lock / redeem / break / per-token reward pool)
+- [x] Tests (10/10 passing)
+- [x] Testnet deployment ([DEPLOYMENTS.md](./DEPLOYMENTS.md))
+- [x] Frontend live on GitHub Pages
+- [x] Multi-token, no-break hard lock, stats, i18n (en/ko/zh)
+- [ ] Verify real Stock Token transfer/compliance behavior (mainnet blocker)
+- [ ] Security audit
+- [ ] Legal review (securities)
+
+## Disclaimer
+
+Demo / testnet. Tokenized stocks differ legally from real shares (limited voting/ownership rights), and investing carries risk of loss. Review applicable regulations and risks before any real-money use.

@@ -8,11 +8,14 @@ import { CAPSULE, STOCK, EXPLORER, TOKENS, symbolOf } from "./contracts";
 
 const DUR = [30, 90, 180, 365];
 
+// public/ 에셋 경로 (GitHub Pages base 대응)
+const asset = (p) => import.meta.env.BASE_URL + p;
+
 const T = {
   ko: {
     nav_how: "작동 방식", nav_build: "캡슐 만들기", nav_trust: "신뢰",
     connect: "지갑 연결", disconnect: "연결 해제", wrongNet: "네트워크 전환",
-    eyebrow: "Robinhood Chain · 온체인 · 비수탁",
+    eyebrow: "다이아 핸드를 위해 만들었습니다",
     h1a: "미래의 나에게 거는 ", h1b: "약속.",
     lead: "주식 토큰을 캡슐에 잠그세요. 끝까지 버티면 그대로 돌려받고, 그 사이 캡슐은 자라납니다. 중간에 깨면 페널티는 버틴 사람들의 몫이 됩니다.",
     cta1: "캡슐 만들기", cta2: "작동 방식 보기",
@@ -65,7 +68,7 @@ const T = {
   en: {
     nav_how: "How it works", nav_build: "Create", nav_trust: "Trust",
     connect: "Connect Wallet", disconnect: "Disconnect", wrongNet: "Switch network",
-    eyebrow: "Robinhood Chain · On-chain · Non-custodial",
+    eyebrow: "Made for diamond hands",
     h1a: "A promise to your ", h1b: "future self.",
     lead: "Lock your stock tokens in a capsule. Hold to maturity and get it all back — while the capsule grows. Break early, and your penalty rewards those who held.",
     cta1: "Create a capsule", cta2: "See how it works",
@@ -118,7 +121,7 @@ const T = {
   zh: {
     nav_how: "工作原理", nav_build: "创建胶囊", nav_trust: "信任",
     connect: "连接钱包", disconnect: "断开", wrongNet: "切换网络",
-    eyebrow: "Robinhood Chain · 链上 · 非托管",
+    eyebrow: "为钻石手而生",
     h1a: "给未来的自己一个", h1b: "承诺。",
     lead: "把股票代币锁进胶囊。坚持到到期就能全额取回，期间胶囊还会成长。中途打破，罚金归坚持到底的人所有。",
     cta1: "创建胶囊", cta2: "查看工作原理",
@@ -210,7 +213,7 @@ export default function App() {
     <>
       <nav>
         <div className="wrap nav-in">
-          <div className="logo"><span className="gem">💎</span>Diamond Capsule</div>
+          <div className="logo"><img className="logo-img" src={asset("logo.png")} alt="" />Diamond Capsule</div>
           <div className="nav-links">
             <a href="#how">{t.nav_how}</a><a href="#learn">{t.faq_k}</a><a href="#build">{t.nav_build}</a><a href="#trust">{t.nav_trust}</a>
           </div>
@@ -294,7 +297,7 @@ export default function App() {
 
       <footer><div className="wrap">
         <div className="foot">
-          <div className="logo"><span className="gem">💎</span>Diamond Capsule</div>
+          <div className="logo"><img className="logo-img" src={asset("logo.png")} alt="" />Diamond Capsule</div>
           <span>{t.foot}</span>
         </div>
         <p className="disclaimer">{t.disclaimer}</p>
@@ -362,7 +365,9 @@ function Hero({ t }) {
           <span className="chip">🕐 {t.chip3}</span>
         </div>
       </div>
-      <HeroCard t={t} />
+      <div className="hero-art">
+        <img src={asset("hero.png")} alt="Diamond hands gripping a gem, breaking free of chains" />
+      </div>
     </div></header>
   );
 }
