@@ -32,16 +32,15 @@ contract DiamondCapsuleTest is Test {
         (, p, , , , , ) = cap.capsules(id);
     }
 
-    // 생성 수수료 0.05%가 feeRecipient에게 가고, 나머지가 원금으로 잠긴다
-    function test_MintFee() public {
+    // 생성 수수료 없음: 예치액 전부가 원금, feeRecipient엔 아무것도 안 감
+    function test_NoMintFee() public {
         uint64 unlock = uint64(block.timestamp + 30 days);
         vm.prank(alice);
         uint256 id = cap.mint(address(stock), AMOUNT, unlock, "");
 
-        uint256 fee = (AMOUNT * 5) / 10000; // 0.05%
-        assertEq(stock.balanceOf(feeRecipient), fee, "fee to dev");
-        assertEq(_principalOf(id), AMOUNT - fee, "principal = amount - fee");
-        assertEq(stock.balanceOf(address(cap)), AMOUNT - fee, "contract holds principal");
+        assertEq(stock.balanceOf(feeRecipient), 0, "no mint fee");
+        assertEq(_principalOf(id), AMOUNT, "principal = full amount");
+        assertEq(stock.balanceOf(address(cap)), AMOUNT, "contract holds full amount");
     }
 
     // 만기 후 회수: 원금 전액 회수 (회수 수수료 없음), 보상 없으면 정확히 원금
@@ -70,9 +69,8 @@ contract DiamondCapsuleTest is Test {
 
         uint256 penalty = (principal * 1000) / 10000; // 10%
         assertEq(stock.balanceOf(alice), principal - penalty, "alice keeps 90%");
-        // 남은 홀더가 없으므로 페널티 전액이 feeRecipient로 (mint fee + penalty)
-        uint256 mintFee = (AMOUNT * 5) / 10000;
-        assertEq(stock.balanceOf(feeRecipient), mintFee + penalty, "no holders -> penalty absorbed by dev");
+        // 남은 홀더가 없으므로 페널티 전액이 feeRecipient로 (생성 수수료 없음)
+        assertEq(stock.balanceOf(feeRecipient), penalty, "no holders -> penalty absorbed by dev");
     }
 
     // 핵심: 조기파기 페널티가 "버틴 홀더"에게 분배된다

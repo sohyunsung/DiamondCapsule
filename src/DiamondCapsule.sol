@@ -16,8 +16,8 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
  *  - 캡슐 하나가 NFT 하나이고, 시간이 지날수록 그림이 자란다.
  *
  * 수수료 (모두 상수, 필요시 조정):
- *  - 생성 수수료 0.05% (MINT_FEE_BPS)
- *  - 회수 수수료 0% (무료)
+ *  - 생성 수수료 없음 (무료)
+ *  - 회수 수수료 없음 (무료)
  *  - 페널티 중 0.5%만 개발자 수익 (DEV_PENALTY_BPS), 나머지는 홀더 보상 풀로
  */
 contract DiamondCapsule is ERC721 {
@@ -37,7 +37,6 @@ contract DiamondCapsule is ERC721 {
     mapping(uint256 => Capsule) public capsules;
 
     uint256 public constant PENALTY_BPS = 1000;    // 조기파기 페널티 10%
-    uint256 public constant MINT_FEE_BPS = 5;      // 생성 수수료 0.05%
     uint256 public constant DEV_PENALTY_BPS = 50;  // 페널티 중 0.5%가 개발자 몫
     uint256 private constant ACC = 1e18;
 
@@ -66,10 +65,8 @@ contract DiamondCapsule is ERC721 {
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
-        // 생성 수수료 0.05% (개발자)
-        uint256 fee = (amount * MINT_FEE_BPS) / 10000;
-        uint256 principal = amount - fee;
-        if (fee > 0) IERC20(token).safeTransfer(feeRecipient, fee);
+        // 생성 수수료 없음: 예치액 전부가 원금
+        uint256 principal = amount;
 
         // 보상 풀 편입
         totalStaked[token] += principal;

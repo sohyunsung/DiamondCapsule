@@ -55,7 +55,7 @@ const T = {
     faq: [
       { q: "잠근 동안에도 배당을 받나요?", a: "네. Robinhood Stock Token은 배당이 토큰 가치(multiplier)로 반영되는 방식이라, 캡슐에 잠겨 있어도 배당은 자동으로 쌓입니다. 토큰 개수는 그대로지만 만기에 꺼낼 때 더 가치 있는 토큰이 됩니다. 컨트랙트가 따로 하는 일 없이 복리로 굴러갑니다." },
       { q: "조기파기 페널티는 어디로 가나요?", a: "누군가 조기파기할 때마다, 그 페널티는 바로 그 순간 잠겨 있는 홀더들에게 즉시 분배되어 쌓입니다(한 번에 몰아주는 게 아니라 사건마다 그때그때). 각자의 몫은 ‘잠근 금액 × 잠근 기간’에 비례해서, 오래·많이 잠글수록 더 받습니다. 이미 만기로 빠져나간 사람이나 나중에 들어온 사람은 그 몫을 받지 않아 공평합니다." },
-      { q: "수수료는 어떻게 되나요?", a: "생성 시 0.05%(0.1% 미만)의 소액 수수료만 있고, 회수는 무료입니다. 조기파기 페널티(10%) 중에서는 0.5%만 운영 수수료로 쓰이고, 나머지 99.5%는 전부 끝까지 버틴 홀더들에게 돌아갑니다. 즉 대부분의 페널티는 개발자가 아니라 커뮤니티(버틴 사람들)의 몫입니다." },
+      { q: "수수료는 어떻게 되나요?", a: "생성과 회수 모두 무료입니다. 유일한 수수료는 조기파기 페널티(10%) 중 0.5%뿐이고, 나머지 99.5%는 전부 끝까지 버틴 홀더들에게 돌아갑니다. 즉 대부분의 페널티는 개발자가 아니라 커뮤니티(버틴 사람들)의 몫입니다." },
       { q: "여러 종류의 주식 토큰을 잠글 수 있나요?", a: "네. 캡슐은 특정 토큰에 묶여 있지 않습니다. 토큰마다 별도의 보상 풀이 관리되어, TSLA 페널티는 TSLA 홀더에게, AMZN 페널티는 AMZN 홀더에게 갑니다." },
       { q: "자산은 누가 보관하나요? 서비스가 사라지면요?", a: "회사가 아니라 스마트 컨트랙트가 보관합니다(비수탁). 인출·정지·업그레이드 권한이 코드에 없어 개발자도 손댈 수 없습니다. 이 사이트가 사라져도 컨트랙트는 체인에 남아, 익스플로러에서 직접 회수할 수 있습니다." },
     ],
@@ -106,7 +106,7 @@ const T = {
     faq: [
       { q: "Do I still earn dividends while locked?", a: "Yes. Robinhood Stock Tokens reflect dividends in the token's value (a multiplier), so dividends accrue automatically even while your tokens are locked in a capsule. Your token count stays the same, but each token is worth more at maturity. It compounds without the contract doing anything." },
       { q: "Where does the early-break penalty go?", a: "Every time someone breaks early, their penalty is distributed instantly to whoever is locked at that exact moment — not in one lump later, but per event as it happens. Each holder's share is proportional to ‘amount locked × time locked’, so the longer and larger you lock, the more you get. People who already redeemed and left, or who join later, don't get that slice — which keeps it fair." },
-      { q: "What are the fees?", a: "A tiny 0.05% fee on creation (under 0.1%), and redemption is free. Of the 10% early-break penalty, only 0.5% is an operating fee — the other 99.5% goes entirely to holders who stay. So most of the penalty belongs to the community (the holders), not the developer." },
+      { q: "What are the fees?", a: "Creating and redeeming are both free. The only fee is 0.5% of the 10% early-break penalty — the other 99.5% goes entirely to holders who stay. So most of the penalty belongs to the community (the holders), not the developer." },
       { q: "Can I lock different kinds of stock tokens?", a: "Yes. A capsule isn't tied to one token. Each token has its own reward pool, so TSLA penalties go to TSLA holders and AMZN penalties go to AMZN holders." },
       { q: "Who custodies the assets? What if the service disappears?", a: "A smart contract holds them, not a company (non-custodial). No withdraw, pause, or upgrade powers exist in the code — not even the developer can touch them. If this site vanishes, the contract stays on-chain and you can redeem directly from the explorer." },
     ],
@@ -157,7 +157,7 @@ const T = {
     faq: [
       { q: "锁定期间还能获得分红吗？", a: "可以。Robinhood 股票代币通过代币价值(multiplier)体现分红，因此即使代币锁在胶囊里，分红也会自动累积。代币数量不变，但到期取出时每个代币更值钱。无需合约做任何事，就以复利方式增长。" },
       { q: "提前打破的罚金去哪了？", a: "每当有人提前打破，其罚金会在那一刻立即分配给当时正在锁定的持有者（不是事后一次性发放，而是每次事件即时发生）。每人的份额与‘锁定金额 × 锁定时长’成正比，锁得越久、越多就分得越多。已到期离场或之后才加入的人不会分到那份，从而保证公平。" },
-      { q: "手续费怎么算？", a: "创建时收取 0.05%（低于 0.1%）的小额费用，取回免费。10% 的提前打破罚金中，只有 0.5% 作为运营费，其余 99.5% 全部归坚持到底的持有者。也就是说大部分罚金属于社区（持有者），而非开发者。" },
+      { q: "手续费怎么算？", a: "创建和取回都免费。唯一的费用是 10% 提前打破罚金中的 0.5%，其余 99.5% 全部归坚持到底的持有者。也就是说大部分罚金属于社区（持有者），而非开发者。" },
       { q: "可以锁定不同种类的股票代币吗？", a: "可以。胶囊不绑定于某一种代币。每种代币有各自独立的奖励池，因此 TSLA 的罚金归 TSLA 持有者，AMZN 的罚金归 AMZN 持有者。" },
     ],
   },
@@ -210,7 +210,11 @@ export default function App() {
           </div>
           <div className="nav-right">
             <button className="theme-btn" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "☀️" : "🌙"}</button>
-            <button className="lang" onClick={() => setLang(lang === "ko" ? "en" : lang === "en" ? "zh" : "ko")}>{lang === "ko" ? "한국어" : lang === "en" ? "EN" : "中文"}</button>
+            <select className="lang" value={lang} onChange={(e) => setLang(e.target.value)} aria-label="language">
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+              <option value="zh">中文</option>
+            </select>
             {!isConnected ? (
               <button className="btn-primary" onClick={() => connect({ connector: connectors[0] })}>{t.connect}</button>
             ) : wrongNet ? (
@@ -551,7 +555,7 @@ function Builder({ t, lang, address }) {
             <h4>{t.sum_title}</h4>
             <div className="sum-row"><span className="lbl">{t.sum_lock}</span><span className="val">{amt.toLocaleString()} {symbol}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_unlock}</span><span className="val">+{days}{t.day}</span></div>
-            <div className="sum-row"><span className="lbl">{t.sum_mintfee}</span><span className="val">0.05%</span></div>
+            <div className="sum-row"><span className="lbl">{t.sum_mintfee}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{t.free}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_redeemfee}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{t.free}</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_penalty}</span><span className="val" style={{ color: "var(--amber)" }}>10%</span></div>
             <div className="sum-row"><span className="lbl">{t.sum_share}</span><span className="val" style={{ color: "var(--rh-deep)" }}>{amt.toLocaleString()} × {days}{t.day}</span></div>
